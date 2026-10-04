@@ -4,7 +4,7 @@ This project deploys to Cloudflare via **Git integration** (Workers Builds): pus
 
 ## How it works
 
-- `wrangler.toml` defines the Worker (`daily-current-affairs`) and static assets (`public/`)
+- `wrangler.toml` defines the Worker (`dailycurrentaffairs`) and static assets (`public/`)
 - Static files are served first; `/api/*` routes go to the Worker (`run_worker_first`)
 - The Worker is the only layer that talks to Neon PostgreSQL
 
@@ -12,7 +12,7 @@ This project deploys to Cloudflare via **Git integration** (Workers Builds): pus
 
 After connecting the repo in the Cloudflare dashboard, add the secret:
 
-**Dashboard → Workers & Pages → daily-current-affairs → Settings → Variables and Secrets**
+**Dashboard → Workers & Pages → dailycurrentaffairs → Settings → Variables and Secrets**
 
 | Type | Name | Value |
 |------|------|-------|
