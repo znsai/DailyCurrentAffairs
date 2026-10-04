@@ -2,29 +2,24 @@
 
 ## 1. Project Goal
 
-Build a lightweight, fast, mobile-friendly Current Affairs website for students preparing for Indian competitive and government exams.
+Build a lightweight, fast, mobile-friendly Current Affairs and Quiz platform for students preparing for Indian government competitive exams.
 
-The system will automatically receive current-affairs articles from an existing n8n automation and store structured article data in Neon PostgreSQL.
+The system will receive current-affairs articles from an existing n8n automation and store structured content in Neon PostgreSQL.
 
-The website will allow students to:
+The platform must be designed from the beginning for:
 
-- Read daily current affairs
-- Browse previous dates
-- Search articles
-- Filter by subject
-- Open the original source article
-- Quickly revise important information
+- UPSC
+- SSC
+- RRB
+- Banking
+- TNPSC
+- State PSC exams
+- Defence exams
+- Other Indian government competitive exams
 
-Future features may include:
+The long-term goal is to build a high-quality current-affairs revision platform, not merely a news-reading website.
 
-- User login
-- Save/bookmark articles
-- Revision lists
-- MCQs
-- Progress tracking
-- Premium features
-
-Do NOT implement future features unless explicitly requested.
+Future features may include user accounts, bookmarks, revision history, personalized learning, analytics, MCQs at scale, and premium features. Do NOT implement future features unless explicitly requested.
 
 ## 2. Core Architecture
 
@@ -34,13 +29,13 @@ n8n → Neon PostgreSQL → Cloudflare API / Worker → Frontend → Students
 
 Neon is the primary data store.
 
-Google Sheets is NOT the database.
+Google Sheets is NOT the application database.
 
-The frontend must NOT directly connect to Neon using database credentials. Database access must happen through a secure server/API layer.
+The frontend must NOT connect directly to Neon using database credentials. Database access must happen through a secure API/server layer.
 
 ## 3. Technology Direction
 
-Use simple, lightweight technologies.
+Use simple, lightweight, maintainable technologies.
 
 Preferred stack:
 
@@ -48,16 +43,175 @@ Preferred stack:
 - Backend/API: Cloudflare Worker
 - Database: Neon PostgreSQL
 - Source control: GitHub
-- Automation/content ingestion: existing n8n workflow
+- Content ingestion: existing n8n workflow
 - Hosting: Cloudflare
 
 Avoid unnecessary frameworks and dependencies.
 
 The website should be inexpensive to operate and suitable for Cloudflare's free/low-cost infrastructure.
 
-## 4. Database Concept
+## 4. Product Structure
 
-The primary table will represent current-affairs articles.
+The application has TWO primary sections:
+
+### A. Current Affairs
+
+This is the reading and revision section.
+
+It must support:
+
+- Daily current affairs
+- Weekly current affairs
+- Monthly current affairs
+- Date-wise archive
+- Search
+- Subject filtering
+- Exam filtering where appropriate
+
+### B. Quiz
+
+This is the testing and revision section.
+
+It must be separate from the article-reading experience.
+
+It must support:
+
+- Daily Quiz
+- Weekly Quiz
+- Monthly Quiz
+- Subject-wise Quiz
+- Exam-wise Quiz
+- Future custom quizzes
+
+A user should be able to finish reading current affairs and then navigate to a relevant quiz separately.
+
+Do NOT put the quiz directly inside the current-affairs article reading page unless explicitly requested.
+
+## 5. Current Affairs Organization
+
+Current Affairs should be organized by period:
+
+### Daily
+
+Users can view current affairs for a specific date.
+
+Example:
+
+4 October 2026
+3 October 2026
+2 October 2026
+
+### Weekly
+
+Users can view a complete week's important current affairs.
+
+Example:
+
+Week 1 — October 2026
+Week 2 — October 2026
+
+### Monthly
+
+Users can view a complete month's current affairs.
+
+Example:
+
+October 2026
+September 2026
+
+The database and API should make these views possible without duplicating the same article unnecessarily.
+
+## 6. Current Affairs Filters
+
+Current Affairs must support combinations of filters where practical.
+
+### Date / Period
+
+- Today
+- Yesterday
+- Specific date
+- Date range
+- This week
+- This month
+- Daily
+- Weekly
+- Monthly
+
+### Subject
+
+Use the following canonical subject categories:
+
+- Polity & Governance
+- Economy & Banking
+- National Affairs
+- International Relations
+- Defence & Security
+- Science & Technology
+- Environment
+- Health
+- Agriculture
+- Government Schemes
+- Social Issues
+- Sports
+- Awards & Honours
+- Appointments
+- Reports & Indices
+- Books & Authors
+- Art & Culture
+- Geography
+- Important Days
+- Other
+
+Do not create duplicate or slightly different spellings of these categories.
+
+### Exam
+
+The system should eventually support multiple exam tags because one current-affairs item can be relevant to more than one exam.
+
+Supported exam categories include:
+
+- UPSC
+- SSC
+- RRB
+- Banking
+- TNPSC
+- State PSC
+- Defence
+- Other Government Exams
+
+Do NOT assume that every article belongs to only one exam.
+
+## 7. Quiz Organization
+
+Quiz is a separate product section from Current Affairs.
+
+### Quiz periods
+
+- Daily Quiz
+- Weekly Quiz
+- Monthly Quiz
+- Custom Quiz (future)
+
+### Quiz filters
+
+Quiz should support independent filters for:
+
+- Date
+- Week
+- Month
+- Subject
+- Exam
+- Difficulty (future-ready)
+
+Example:
+
+Quiz → Monthly → October 2026 → Economy & Banking → Banking
+
+The filtering system should be designed so multiple filters can be combined efficiently.
+
+## 8. Question Model
+
+Questions must be separate entities from current-affairs articles.
 
 Initial conceptual structure:
 
@@ -72,33 +226,52 @@ current_affairs
 - what_is_important
 - created_at
 
-The original source URL must be preserved.
+questions
 
-The URL should have a UNIQUE constraint so the same article cannot be inserted multiple times.
+- id
+- current_affairs_id
+- question
+- option_a
+- option_b
+- option_c
+- option_d
+- correct_answer
+- explanation
+- date
+- subject
+- created_at
 
-Do not create additional tables unless they are actually required.
+Initially, the n8n/AI pipeline may generate one MCQ per article.
 
-## 5. Current Affairs Content
+The database must NOT assume that an article can only ever have one question. One important article may have multiple questions in the future.
+
+A question belongs to a current-affairs article through `current_affairs_id`.
+
+Do not duplicate the article content into the question record unless there is a clear technical reason.
+
+## 9. Exam Relevance Model
+
+A question or current-affairs article may be relevant to multiple exams.
+
+Do not design the core data model around a single `exam` field if that would prevent multiple exam associations.
+
+If exam-specific filtering requires a relational mapping table, use a normalized design such as an exam/tag mapping table rather than duplicating records.
+
+The exact implementation should be proposed and approved before adding unnecessary tables.
+
+## 10. Current Affairs Content
 
 Current affairs are generated by the existing n8n automation.
 
 The AI must NOT invent current-affairs articles.
 
-The application should treat Neon as the source of truth for published articles.
+Neon is the source of truth for published current-affairs content.
 
-The article source URL must always be available to the user.
+The original source URL must always be preserved exactly.
 
-The website should clearly provide a way to open the original article.
+The website must provide a clear way to open the original article.
 
-## 6. Initial Website Requirements
-
-The first version should provide:
-
-### Home / Daily Current Affairs
-
-Display the latest current affairs.
-
-Each article should show:
+The current-affairs article should contain:
 
 - Title
 - Date
@@ -107,42 +280,74 @@ Each article should show:
 - What is Important
 - Original Source
 
-### Date Navigation
+## 11. Question Content
 
-Users should be able to browse previous days.
+Questions should be generated from the current-affairs content and must remain factually grounded in the source article.
 
-### Search
+A question should contain:
 
-Users should be able to search article titles and relevant content.
+- Question
+- Four options
+- Correct answer
+- Explanation
+- Subject
+- Date
+- Associated current-affairs article
 
-Search should work efficiently with PostgreSQL.
+Questions should be useful for government competitive exams and should not be ambiguous or artificially tricky.
 
-### Subject Filter
+## 12. Website Navigation
 
-Allow filtering by subjects such as:
+The main product navigation should clearly separate Current Affairs and Quiz.
 
-- Polity
-- Economy
-- International Relations
-- Science & Technology
-- Environment
-- Geography
-- History
-- Government Schemes
-- Defence
-- Sports
-- Awards
-- Other relevant government-exam subjects
+Conceptually:
 
-Do not hard-code unnecessary categories if the database already contains the subject.
+CURRENT AFFAIRS
+├── Daily
+├── Weekly
+├── Monthly
+└── Archive
 
-### Mobile Support
+QUIZ
+├── Daily Quiz
+├── Weekly Quiz
+├── Monthly Quiz
+├── Subject Quiz
+└── Exam Quiz
 
-The website must work properly on desktop, mobile, and tablet.
+The exact visual design can evolve, but the separation between reading and testing should remain clear.
 
-Mobile usability is important because many students will access the site from phones.
+## 13. Initial Website Requirements
 
-## 7. UI Principles
+The first working version should provide:
+
+### Current Affairs
+
+- Latest/current-day articles
+- Previous-date navigation
+- Date filtering
+- Subject filtering
+- Search
+- Article details
+- Original source link
+
+### Quiz foundation
+
+The architecture should support the quiz section and question data model from the beginning, but do not overbuild the complete quiz experience before the basic data flow works.
+
+The user should eventually be able to move from reading Current Affairs to a separate Daily/Weekly/Monthly Quiz.
+
+## 14. Mobile Support
+
+The website must work properly on:
+
+- Desktop
+- Mobile
+- Tablet
+
+Mobile usability is important because many students will access the platform from phones.
+
+## 15. UI Principles
 
 Keep the design:
 
@@ -151,13 +356,14 @@ Keep the design:
 - Fast
 - Easy to read
 - Student focused
-- Minimal
+- Modern but not distracting
+- Minimal where possible
 
-Avoid excessive animations, heavy libraries, unnecessary dashboards, cluttered layouts, and large images that slow down the page.
+Avoid excessive animations, heavy libraries, unnecessary dashboards, cluttered layouts, and large assets that slow down the page.
 
-Prioritize readability.
+Prioritize readability and revision speed.
 
-## 8. API Design
+## 16. API Design
 
 The frontend should communicate with the Cloudflare API.
 
@@ -165,14 +371,44 @@ Possible API structure:
 
 GET /api/current-affairs
 GET /api/current-affairs?date=YYYY-MM-DD
-GET /api/current-affairs?subject=Economy
+GET /api/current-affairs?subject=Economy%20%26%20Banking
+GET /api/current-affairs?from=YYYY-MM-DD&to=YYYY-MM-DD
 GET /api/search?q=keyword
+GET /api/questions
+GET /api/questions?date=YYYY-MM-DD
+GET /api/questions?subject=Economy%20%26%20Banking
+GET /api/questions?month=2026-10
 
-The exact API structure can be improved during implementation.
+The exact API design may be improved during implementation.
 
 Do not create APIs that are not needed.
 
-## 9. Security Rules
+Filtering should happen server-side where appropriate rather than downloading the entire database to the browser.
+
+## 17. Database Design Principles
+
+Neon is the production data store.
+
+Before creating tables:
+
+1. Inspect the existing Neon project.
+2. Confirm the active branch/database.
+3. Review the existing schema.
+4. Only then create the required schema.
+
+Do not delete or modify existing Neon resources without explicit approval.
+
+Use migrations or a clearly reproducible SQL schema.
+
+Database changes must be safe and reproducible.
+
+Use appropriate indexes for common filters such as date, subject, URL, and relationships.
+
+Use a UNIQUE constraint on the original article URL so duplicate articles are not inserted.
+
+Do not create tables merely because they might be useful someday. Prefer a minimal normalized design that supports the planned product.
+
+## 18. Security Rules
 
 Never expose:
 
@@ -190,22 +426,23 @@ Do not commit `.env` files containing secrets.
 
 Create/update `.gitignore` appropriately.
 
-## 10. Performance Rules
+## 19. Performance Rules
 
 The site should be lightweight.
 
 Prefer:
 
-- Server-side filtering where appropriate
-- PostgreSQL queries instead of downloading the entire database
+- Server-side filtering
+- PostgreSQL indexes
 - Pagination
 - Small JavaScript bundles
 - Minimal dependencies
 - Browser caching where appropriate
+- Efficient queries
 
-Do not load thousands of articles into the browser unnecessarily.
+Do not load thousands of current-affairs articles or questions into the browser unnecessarily.
 
-## 11. Development Method
+## 20. Development Method
 
 IMPORTANT: Work ONE STEP AT A TIME.
 
@@ -220,7 +457,9 @@ For every major stage:
 
 Never assume the next step is approved.
 
-## 12. Before Writing Code
+Do not implement multiple major architectural layers in one step.
+
+## 21. Before Writing Code
 
 First inspect:
 
@@ -237,7 +476,7 @@ Do not create duplicate configuration files.
 
 Reuse existing configuration when appropriate.
 
-## 13. Git Rules
+## 22. Git Rules
 
 Use Git properly.
 
@@ -247,8 +486,11 @@ Examples:
 
 - feat: initialize current affairs application
 - feat: add current affairs schema
+- feat: add question schema
 - feat: add current affairs api
+- feat: add quiz api
 - feat: add daily current affairs page
+- feat: add quiz filters
 - fix: correct article search
 
 Do not make huge commits containing unrelated changes.
@@ -257,24 +499,7 @@ Before modifying the project, check `git status`.
 
 Never discard existing user changes without permission.
 
-## 14. Neon Rules
-
-Neon is the production data store.
-
-Before creating tables:
-
-1. Inspect the existing Neon project.
-2. Confirm the active branch/database.
-3. Review existing schema.
-4. Only then create the required schema.
-
-Do not delete or modify existing Neon resources without explicit approval.
-
-Use migrations or a clearly reproducible SQL schema.
-
-Database changes must be safe and reproducible.
-
-## 15. Cloudflare Rules
+## 23. Cloudflare Rules
 
 Cloudflare will eventually host:
 
@@ -291,7 +516,7 @@ Then configure environment variables/secrets.
 
 Then deploy.
 
-## 16. Testing
+## 24. Testing
 
 Every implementation step should be validated.
 
@@ -303,33 +528,38 @@ At minimum:
 - Search works
 - Date filtering works
 - Subject filtering works
+- Current Affairs filters can be combined where supported
+- Quiz filters can be combined where supported
+- Questions map correctly to current-affairs articles
 - Mobile layout works
 - No secrets are exposed
 
 Fix errors before proceeding to the next stage.
 
-## 17. Future Features
+## 25. Future Features
 
-These are intentionally postponed:
+These are intentionally postponed unless explicitly requested:
 
 - Authentication
 - User accounts
 - Saved articles
 - Bookmarks
 - Revision history
-- MCQs
-- Personalized recommendations
+- Question attempts
+- Scores and leaderboards
+- Personalized revision
+- Weak-topic analysis
+- Difficulty classification
+- Advanced question types
 - Payments
 - Ads
 - Analytics
 
-Do NOT implement them during the initial build.
+The architecture should remain extensible enough to support these later without unnecessary complexity now.
 
-Design the architecture so they can be added later.
+## 26. AI Behavior
 
-## 18. AI Behavior
-
-Act as a senior full-stack architect.
+Act as a senior full-stack architect and developer.
 
 Before making architectural decisions:
 
@@ -339,6 +569,9 @@ Before making architectural decisions:
 - Prefer Cloudflare-compatible solutions
 - Prefer Neon-native PostgreSQL features
 - Avoid over-engineering
+- Preserve the separation between Current Affairs and Quiz
+- Design for daily, weekly, and monthly revision from the beginning
+- Design filters as first-class features
 
 If there are multiple valid approaches, explain the trade-offs briefly and recommend one.
 
@@ -348,7 +581,7 @@ Do not silently change requirements.
 
 If something is unclear, stop and ask.
 
-## 19. Current Development Phase
+## 27. Current Development Phase
 
 We are currently at:
 
@@ -362,13 +595,19 @@ znsai/DailyCurrentAffairs
 
 Neon project has also been created.
 
+The product direction is:
+
+Current Affairs + Revision + Quiz
+
+with separate Current Affairs and Quiz sections, daily/weekly/monthly organization, and independent filtering.
+
 Next objective:
 
-Create the basic project structure and establish the local development environment.
+Inspect the existing repository and establish the basic local development environment.
 
 Do NOT start implementing the full website yet.
 
-## 20. Golden Rule
+## 28. Golden Rule
 
 BUILD IN SMALL VERIFIED STEPS.
 
