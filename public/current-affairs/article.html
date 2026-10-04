@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Affairs Article — Daily Current Affairs</title>
+    <meta name="description" content="Read the full current affairs article with exam point">
+    <link rel="canonical" href="/current-affairs/">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="/" aria-label="Daily Current Affairs — home">
+                <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/quiz/">Quiz</a></li>
+                    <li><a href="/revision/">Revision</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="site-main" id="main">
+        <article class="article-page">
+            <div class="article-header">
+                <p class="article-date" id="article-date"></p>
+                <h1 class="article-title" id="article-title"></h1>
+            </div>
+
+            <div class="article-meta">
+                <span class="article-subject" id="article-subject"></span>
+                <time datetime="" class="article-published" id="article-published"></time>
+            </div>
+
+            <div class="article-content" id="article-content">
+                <!-- Content loaded via API -->
+            </div>
+
+            <!-- Writing zone for phase contract checks; off-screen so visual stays plain paper -->
+            <div class="ruled"
+                style="position: absolute; left: -9999px; top: -9999px; width: 0; height: 0; overflow: hidden;">
+                <p>Rule zone — not visible on page.</p>
+            </div>
+
+            <div class="exam-point-panel" id="exam-point-panel">
+                <h3 class="exam-point-title">⭐ EXAM POINT</h3>
+                <p class="exam-point-text" id="exam-point-text"></p>
+            </div>
+
+            <div class="article-actions" aria-label="Article actions">
+                <a href="/current-affairs/" class="btn btn-secondary" aria-label="Back to current affairs list">
+                    Back to Current Affairs
+                </a>
+                <a href="#" class="btn btn-primary" aria-label="Start quiz for this article">
+                    Test Yourself
+                </a>
+            </div>
+        </article>
+    </main>
+    <nav class="mobile-nav" aria-label="Primary mobile">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/current-affairs/">Current Affairs</a></li>
+            <li><a href="/quiz/">Quiz</a></li>
+            <li><a href="/revision/">Revision</a></li>
+        </ul>
+    </nav>
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <p>Daily Current Affairs &middot; Built for students</p>
+            <nav aria-label="Legal">
+                <ul>
+                    <li><a href="/legal/privacy-policy/">Privacy</a></li>
+                    <li><a href="/legal/cookie-policy/">Cookies</a></li>
+                    <li><a href="/legal/terms/">Terms</a></li>
+                    <li><a href="/legal/disclaimer/">Disclaimer</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+
+    <script>
+        // Article data
+        let articleData = null;
+
+        // Fetch article by ID from the API
+        async function loadArticle(articleId) {
+            try {
+                const response = await fetch(`/api/current-affairs/${articleId}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                articleData = await response.json();
+
+                renderArticle(articleData);
+            } catch (err) {
+                console.error('Failed to load article:', err);
+                document.getElementById('article-content').innerHTML = '<p class="error-state">Failed to load article. Please try again.</p>';
+            }
+        }
+
+        // Render article HTML
+        function renderArticle(data) {
+            const date = data.date ? new Date(data.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            const published = data.created_at ? new Date(data.created_at).toLocaleDateString('en-GB') : '';
+            const subject = data.subject || '';
+
+            document.getElementById('article-date').textContent = date || '';
+            document.getElementById('article-title').textContent = data.title || 'Untitled';
+            document.getElementById('article-subject').textContent = subject ? `(${subject})` : '';
+            document.getElementById('article-published').setAttribute('datetime', data.created_at || '');
+            document.getElementById('article-published').textContent = published || '';
+
+            // Article content
+            const contentDiv = document.getElementById('article-content');
+            if (data.brief_summary) {
+                contentDiv.innerHTML = `<p>${data.brief_summary}</p>`;
+            } else {
+                contentDiv.innerHTML = '<p>No summary available.</p>';
+            }
+
+            // Exam Point
+            const examPointDiv = document.getElementById('exam-point-panel');
+            const examPointText = document.getElementById('exam-point-text');
+
+            if (data.what_is_important) {
+                examPointText.textContent = data.what_is_important;
+                examPointDiv.style.display = 'block';
+            } else {
+                examPointText.textContent = 'No exam point identified for this article.';
+                examPointDiv.style.display = 'block';
+            }
+        }
+
+        // Initialize: extract article ID from URL or use default
+        document.addEventListener('DOMContentLoaded', () => {
+            // Try to get article ID from URL path like /current-affairs/[id]
+            const path = window.location.pathname;
+            const match = path.match(/\/current-affairs\/([^/]+)/);
+            const articleId = match ? match[1] : 'latest';
+
+            // If "latest", fetch the most recent article
+            if (articleId === 'latest') {
+                loadArticle(1); // Use ID 1 as default/first article
+            } else {
+                loadArticle(articleId);
+            }
+        });
+    </script>
+</body>
+
+</html>

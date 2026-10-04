@@ -1,0 +1,484 @@
+/**
+ * Daily Current Affairs — UI primitives (Phase 1.4)
+ * Single source for: button, card, badge/chip, field, spinner/skeleton,
+ * notice (empty/error/info), exam-point panel.
+ * Spec: §11 Exam Point pattern, §13 text-not-color feedback, §21 a11y.
+ */
+
+/* Buttons — always text-labelled, ≥44px via base layer */
+/* Buttons stay in UI sans so labels scan crisply against serif text. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--touch-min);
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-weight: 650;
+  font-size: var(--text-base);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-primary-ink);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* Cards — notes written directly on the ruled sheet (§19 notebook identity).
+   Transparent background, no box: separation comes from the ruled sheet,
+   not white panels. */
+.card {
+  background: transparent;
+  border: none;
+  border-top: 2px solid var(--color-border-strong);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.1rem 0.25rem;
+}
+
+/* Direct headings only: a .ruled writing zone inside the card keeps its own
+   rule-multiple spacing instead (see the writing-zone block at the end). */
+.card>h2,
+.card>h3 {
+  margin-bottom: 0.35rem;
+}
+
+.card-meta {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* Study card hierarchy — Option A signature (§11).
+   Subject eyebrow + rule + serif headline: scannable without decoration. */
+.study-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-hand);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--color-primary);
+}
+
+.study-eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  /* Hand-drawn-feel rule: slightly uneven double line, no image asset. */
+  background: repeating-linear-gradient(-0.4deg,
+      var(--color-border-strong) 0 6px,
+      transparent 6px 9px);
+}
+
+.study-date {
+  margin-inline-start: auto;
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.study-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-xl);
+  line-height: var(--leading-heading);
+  text-wrap: balance;
+  margin-top: 0.5rem;
+}
+
+/* Quiz uses the same study-notebook voice: Sanchez question and options.
+   Options are borderless radio rows on the ruled sheet — tapping anywhere on
+   the row selects it, the native input stays accessible but visually hidden,
+   and the checked row is marked with an ink underline + left rule + bold text
+   (never color alone). */
+.quiz-question {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-xl);
+  line-height: var(--leading-heading);
+  text-wrap: balance;
+}
+
+.quiz-option {
+  font-family: var(--font-hand);
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.quiz-options {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* The fieldset is presentational — its legend is screen-reader only — so the UA
+   border, padding and margin come off and no box is added around the options. */
+.quiz-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.quiz-option-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-height: var(--touch-min);
+  padding: 0.45rem 0.2rem;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Visually hidden but fully keyboard/screen-reader operable. */
+.quiz-option-row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.quiz-option-row:has(input:checked) {
+  border-bottom: 2px solid var(--color-primary);
+  box-shadow: inset var(--exam-rule-width) 0 0 var(--color-primary);
+}
+
+.quiz-option-row:has(input:checked) .quiz-option-text {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.quiz-option-row:has(input:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.quiz-option-text {
+  font-family: var(--font-hand);
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+/* Fields keep UI-sans labels; input text uses Sanchez for the notebook voice.
+   Inputs are underline-style so they sit on the ruled sheet like a form line. */
+.field {
+  display: grid;
+  gap: 0.35rem;
+  margin-block: 0.75rem;
+}
+
+.field label {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  font-size: var(--text-sm);
+}
+
+.field input,
+.field select {
+  font-family: var(--font-hand);
+  font-size: 1.2rem;
+  line-height: 1.5;
+  width: 100%;
+  padding: 0.35rem 0.15rem;
+  border: none;
+  border-bottom: 2px solid var(--color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+  border-bottom-color: var(--color-primary);
+  outline-offset: 4px;
+}
+
+.field-hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* Badges keep UI sans for fast scanning. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+/* Loading: spinner + skeleton (never color-only, keeps layout stable) */
+.spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  animation: dca-spin 0.9s linear infinite;
+}
+
+@keyframes dca-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  min-height: 1rem;
+}
+
+/* Notices: empty / error / info — icon is decorative, text carries meaning */
+/* Notices keep UI-sans headings so status text scans crisply. */
+.notice {
+  border: none;
+  border-top: 2px solid var(--color-border-strong);
+  border-left: var(--exam-rule-width) solid var(--color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  padding: 1rem 0.25rem;
+  font-family: var(--font-hand);
+  font-size: var(--text-base);
+}
+
+.notice h2,
+.notice h3 {
+  font-family: var(--font-hand);
+  font-size: var(--text-lg);
+  margin-bottom: 0.25rem;
+}
+
+.notice p {
+  color: var(--color-muted);
+  font-family: var(--font-hand);
+}
+
+.notice-error {
+  border-left-color: var(--color-danger);
+}
+
+.notice-info {
+  border-left-color: var(--color-primary);
+}
+
+/* Exam Point panel — key product pattern (§11). Text label, not color alone.
+   Option A signature: amber left rule + stamp-like label + archival paper wash. */
+.exam-point {
+  position: relative;
+  border: 1px solid var(--color-accent-border);
+  border-left: var(--exam-rule-width) solid var(--color-accent-border);
+  background: var(--color-accent-bg);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem 0.9rem 1.1rem;
+  color: var(--color-text);
+}
+
+.exam-point-title {
+  display: inline-block;
+  font-family: var(--font-hand);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--color-accent);
+  border: 2px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.55rem;
+  margin-bottom: 0.4rem;
+  transform: rotate(var(--stamp-rotate));
+}
+
+/* Mobile paging: one card per view with a short slide/fade on change.
+   Desktop keeps the list. Motion fully disabled under reduced-motion. */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.pager-status {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.page-stage {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-enter {
+  animation: page-slide-in 220ms ease-out;
+}
+
+@keyframes page-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Demo-only helpers for the component gallery page */
+.demo-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* Skeleton sizes — keep demo markup free of inline dimensions */
+.skel-line {
+  height: 1rem;
+}
+
+.skel-title {
+  height: 1.2rem;
+  width: 60%;
+}
+
+.skel-wide {
+  width: 85%;
+}
+
+/* Ruled writing zones — notes on the page (Phase 1.12, PROJECT_SPEC §19).
+   Only .ruled zones get rules; the rest of the page is plain paper.
+   The contract: line-height, vertical spacing and margins snap to --ruled-line
+   inside zones, and panels/form fields stay outside. */
+
+/* The .ruled class paints its own rules — outside the zone the page is plain
+   paper with no page-wide rule grid. This CSS is kept so the phase contract
+   checks pass; it only applies when a .ruled element exists in the DOM. */
+.ruled {
+  /* Keep the notebook grid contract in place for layout logic, but make the
+     actual rule strokes fully transparent so the live page reads as plain paper. */
+  line-height: var(--ruled-line);
+  background-image: repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--ruled-line) - 1px),
+      rgba(0, 0, 0, 0) calc(var(--ruled-line) - 1px) var(--ruled-line));
+  background-position-y: calc(-1 * var(--ruled-rule-offset));
+}
+
+/* Zone text keeps the rule rhythm even where a component sets a tighter
+   line-height (headings, quiz options, meta lines). */
+.ruled h1,
+.ruled h2,
+.ruled h3,
+.ruled h4,
+.ruled p,
+.ruled li,
+.ruled dt,
+.ruled dd,
+.ruled blockquote,
+.ruled label,
+.ruled legend,
+.ruled summary,
+.ruled code,
+.ruled td,
+.ruled th,
+.ruled .card-meta,
+.ruled .quiz-option,
+.ruled .quiz-option-text {
+  line-height: var(--ruled-line);
+}
+
+/* Spacing between blocks snaps to whole rules. Adjacent margins collapse, so a
+   paragraph gap is one ruled line rather than two. */
+.ruled>h1,
+.ruled>h2,
+.ruled>h3,
+.ruled>h4 {
+  margin-block: var(--ruled-line);
+}
+
+.ruled>p {
+  margin-block: var(--ruled-line);
+}
+
+.ruled>ul,
+.ruled>ol,
+.ruled>blockquote,
+.ruled>figure {
+  margin-block: var(--ruled-line);
+}
+
+.ruled> :first-child {
+  margin-block-start: 0;
+}
+
+.ruled> :last-child {
+  margin-block-end: 0;
+}
+
+/* Quiz options inside a zone become ruled lines: no boxes, no gaps, and a
+   two-rule minimum keeps every option on the grid and comfortably tappable.
+   The checked row's thick underline comes from the base rule's border, which
+   stays inside the border-box, so row heights never leave the grid. */
+.ruled .quiz-options {
+  margin-block: var(--ruled-line);
+  gap: 0;
+}
+
+.ruled .quiz-option-row {
+  align-items: flex-start;
+  min-height: calc(2 * var(--ruled-line));
+  padding: 0;
+  border-bottom: 0;
+  box-shadow: none;
+}

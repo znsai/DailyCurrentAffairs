@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Components — Daily Current Affairs</title>
+    <meta name="description" content="Reusable UI component gallery for the Daily Current Affairs foundation.">
+    <meta name="robots" content="noindex">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="/" aria-label="Daily Current Affairs — home">
+                <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/quiz/">Quiz</a></li>
+                    <li><a href="/revision/">Revision</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="site-main" id="main">
+        <h1>Components</h1>
+        <div class="ruled stack-md">
+            <p class="card-meta">Single source of reusable UI. Future Current Affairs and Quiz pages must reuse
+                these — no duplicates.</p>
+        </div>
+
+        <div class="demo-grid">
+            <section class="card" aria-labelledby="demo-buttons">
+                <h2 id="demo-buttons">Buttons</h2>
+                <div class="demo-row">
+                    <button type="button" class="btn btn-primary">Read today&rsquo;s CA</button>
+                    <a class="btn btn-secondary" href="/quiz/">Start quiz</a>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="demo-badges">
+                <h2 id="demo-badges">Badges</h2>
+                <div class="demo-row">
+                    <span class="badge badge-primary">Polity &amp; Governance</span>
+                    <span class="badge">12 articles</span>
+                    <span class="badge">Quiz available</span>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="demo-card">
+                <h2 id="demo-card">Study card + Exam Point</h2>
+                <article aria-label="Example study card">
+                    <!-- Writing zone: the rules are drawn by this block and follow its
+                         text rhythm. The Exam Point panel sits outside the zone. -->
+                    <div class="ruled">
+                        <p class="study-eyebrow">Polity &amp; Governance <span class="study-date">04 Oct</span></p>
+                        <h3 class="study-title">Example article title</h3>
+                        <p>Concise 2–3 sentence summary will appear here in Phase 2.</p>
+                    </div>
+                    <div class="exam-point stack-md">
+                        <p class="exam-point-title"><span aria-hidden="true">⭐ </span>Exam Point</p>
+                        <p>The exam-relevant fact or concept goes here — scannable in seconds.</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="card" aria-labelledby="demo-field">
+                <h2 id="demo-field">Field</h2>
+                <div class="field">
+                    <label for="demo-search">Search current affairs</label>
+                    <input id="demo-search" name="q" type="search" placeholder="Try RBI, Budget, Space"
+                        autocomplete="off">
+                    <p class="field-hint">Visual only in Phase 1 — wired to <code>/api/search</code> in a later
+                        phase.</p>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="demo-loading">
+                <h2 id="demo-loading">Loading</h2>
+                <div class="demo-row">
+                    <span class="spinner" role="status" aria-label="Loading"></span>
+                    <span class="card-meta">Loading today&rsquo;s current affairs…</span>
+                </div>
+                <div class="demo-grid" aria-hidden="true">
+                    <div class="skeleton skel-title"></div>
+                    <div class="skeleton skel-line"></div>
+                    <div class="skeleton skel-line skel-wide"></div>
+                </div>
+            </section>
+
+            <div class="notice" role="status" aria-labelledby="demo-empty-t">
+                <h2 id="demo-empty-t">No current affairs found</h2>
+                <p>No articles match this date or subject yet. Try another day or clear the filters.</p>
+            </div>
+
+            <div class="notice notice-error" role="alert" aria-labelledby="demo-error-t">
+                <h2 id="demo-error-t">Couldn&rsquo;t load content</h2>
+                <p>Check your connection and try again. If this continues, the article feed may be temporarily
+                    unavailable.</p>
+            </div>
+
+            <section class="card" aria-labelledby="demo-states">
+                <h2 id="demo-states">State patterns (interactive)</h2>
+                <p class="card-meta">Simulated only — proves loading / content / empty / error switching with the
+                    primitives above. Real API wiring arrives in Phase 2.</p>
+                <div class="demo-row" role="group" aria-label="Preview a UI state">
+                    <button type="button" class="btn btn-secondary" data-demo-state="loading">Loading</button>
+                    <button type="button" class="btn btn-secondary" data-demo-state="content">Content</button>
+                    <button type="button" class="btn btn-secondary" data-demo-state="empty">Empty</button>
+                    <button type="button" class="btn btn-secondary" data-demo-state="error">Error</button>
+                </div>
+                <div id="states-demo-region" class="stack-lg" aria-live="polite">
+                    <noscript>
+                        <div class="notice" role="status">
+                            <h3>JavaScript is off</h3>
+                            <p>Core reading pages work without JavaScript. This interactive demo needs it, but the
+                                article feed in Phase 2 will render on the server first.</p>
+                        </div>
+                    </noscript>
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="demo-pager">
+                <h2 id="demo-pager">Mobile pager (1 per view)</h2>
+                <p class="card-meta">Same pattern serves Current Affairs articles and Quiz questions on small
+                    screens: one card, Previous/Next, position text, one short slide/fade.</p>
+                <div class="page-stage stack-md" id="pager-stage">
+                    <article class="card ruled" aria-label="Example paged card">
+                        <p class="study-eyebrow">Polity &amp; Governance <span class="study-date">Question 1 of
+                                3</span>
+                        </p>
+                        <h3 class="quiz-question">Which body prepares the example question?</h3>
+                        <fieldset class="quiz-fieldset">
+                            <legend class="sr-only">Choose one answer</legend>
+                            <ul class="quiz-options">
+                                <li><label class="quiz-option-row"><input type="radio" name="demo-q1" value="a"><span
+                                            class="quiz-option-text">A. Example option one</span></label></li>
+                                <li><label class="quiz-option-row"><input type="radio" name="demo-q1" value="b"><span
+                                            class="quiz-option-text">B. Example option two</span></label></li>
+                                <li><label class="quiz-option-row"><input type="radio" name="demo-q1" value="c"><span
+                                            class="quiz-option-text">C. Example option three</span></label></li>
+                                <li><label class="quiz-option-row"><input type="radio" name="demo-q1" value="d"><span
+                                            class="quiz-option-text">D. Example option four</span></label></li>
+                            </ul>
+                        </fieldset>
+                    </article>
+                </div>
+                <div class="pager">
+                    <button type="button" class="btn btn-secondary" id="pager-prev">Previous</button>
+                    <p class="pager-status" id="pager-status" role="status">Question 1 of 3</p>
+                    <button type="button" class="btn btn-secondary" id="pager-next">Next</button>
+                </div>
+            </section>
+        </div>
+        <p class="stack-lg"><a href="/">Back to home</a></p>
+    </main>
+    <nav class="mobile-nav" aria-label="Primary mobile">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/current-affairs/">Current Affairs</a></li>
+            <li><a href="/quiz/">Quiz</a></li>
+            <li><a href="/revision/">Revision</a></li>
+        </ul>
+    </nav>
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <p>Daily Current Affairs &middot; Built for students</p>
+            <nav aria-label="Legal">
+                <ul>
+                    <li><a href="/legal/privacy-policy/">Privacy</a></li>
+                    <li><a href="/legal/cookie-policy/">Cookies</a></li>
+                    <li><a href="/legal/terms/">Terms</a></li>
+                    <li><a href="/legal/disclaimer/">Disclaimer</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+    <script src="/js/states-demo.js" defer></script>
+    <script src="/js/pager-demo.js" defer></script>
+</body>
+
+</html>

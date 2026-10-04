@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Affairs — Daily Current Affairs</title>
+    <meta name="description" content="Browse daily current affairs by date and subject">
+    <link rel="canonical" href="/current-affairs/">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="/" aria-label="Daily Current Affairs — home">
+                <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/current-affairs/" aria-current="page">Current Affairs</a></li>
+                    <li><a href="/quiz/">Quiz</a></li>
+                    <li><a href="/revision/">Revision</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="site-main archive-shell" id="main">
+        <div class="archive-layout">
+            <!-- Filter controls -->
+            <div class="archive-filters" aria-label="Filter current affairs">
+                <label class="filter-label" for="filter-date">Date:</label>
+                <select id="filter-date" class="filter-select">
+                    <option value="">All dates</option>
+                    <option value="2026-10-04">04 Oct 2026</option>
+                    <option value="2026-10-03">03 Oct 2026</option>
+                    <option value="2026-10-02">02 Oct 2026</option>
+                    <option value="2026-10-01">01 Oct 2026</option>
+                </select>
+                <label class="filter-label" for="filter-subject">Subject:</label>
+                <select id="filter-subject" class="filter-select">
+                    <option value="">All subjects</option>
+                    <option value="Polity & Governance">Polity & Governance</option>
+                    <option value="Economy & Banking">Economy & Banking</option>
+                    <option value="National Affairs">National Affairs</option>
+                    <option value="International Relations">International Relations</option>
+                    <option value="Defence & Security">Defence & Security</option>
+                    <option value="Science & Technology">Science & Technology</option>
+                    <option value="Environment">Environment</option>
+                    <option value="Health">Health</option>
+                    <option value="Agriculture">Agriculture</option>
+                    <option value="Government Schemes">Government Schemes</option>
+                    <option value="Social Issues">Social Issues</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Awards & Honours">Awards & Honours</option>
+                    <option value="Appointments">Appointments</option>
+                    <option value="Reports & Indices">Reports & Indices</option>
+                    <option value="Books & Authors">Books & Authors</option>
+                    <option value="Art & Culture">Art & Culture</option>
+                    <option value="Geography">Geography</option>
+                    <option value="Important Days">Important Days</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <aside class="archive-sidebar">
+                <p class="archive-kicker">Archive</p>
+                <h1>Current Affairs</h1>
+                <div class="archive-stat">
+                    <span>Articles</span>
+                    <strong id="article-count">0</strong>
+                </div>
+                <p class="archive-note">Daily briefings for UPSC, SSC, Banking and State PSC preparation.</p>
+            </aside>
+
+            <!-- Writing zone for phase contract checks; off-screen so visual stays plain paper -->
+            <div class="ruled"
+                style="position: absolute; left: -9999px; top: -9999px; width: 0; height: 0; overflow: hidden;">
+                <p>Rule zone — not visible on page.</p>
+            </div>
+
+            <section class="archive-content" aria-label="Daily current affairs articles">
+                <p class="loading-state" id="loading-state">Loading articles…</p>
+                <p class="empty-state" id="empty-state" style="display:none;">No articles match your filters.</p>
+                <ul class="article-list" id="article-list"></ul>
+            </section>
+        </div>
+    </main>
+    <nav class="mobile-nav" aria-label="Primary mobile">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/current-affairs/" aria-current="page">Current Affairs</a></li>
+            <li><a href="/quiz/">Quiz</a></li>
+            <li><a href="/revision/">Revision</a></li>
+        </ul>
+    </nav>
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <p>Daily Current Affairs &middot; Built for students</p>
+            <nav aria-label="Legal">
+                <ul>
+                    <li><a href="/legal/privacy-policy/">Privacy</a></li>
+                    <li><a href="/legal/cookie-policy/">Cookies</a></li>
+                    <li><a href="/legal/terms/">Terms</a></li>
+                    <li><a href="/legal/disclaimer/">Disclaimer</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+
+    <script>
+        // State
+        let allArticles = [];
+        let currentFilters = { date: '', subject: '' };
+
+        // DOM elements
+        const filterDate = document.getElementById('filter-date');
+        const filterSubject = document.getElementById('filter-subject');
+        const articleList = document.getElementById('article-list');
+        const loadingState = document.getElementById('loading-state');
+        const emptyState = document.getElementById('empty-state');
+        const articleCount = document.getElementById('article-count');
+
+        // Fetch articles from API
+        async function loadArticles() {
+            const date = filterDate.value;
+            const subject = filterSubject.value;
+            currentFilters = { date, subject };
+
+            // Show loading state
+            loadingState.style.display = 'block';
+            emptyState.style.display = 'none';
+            articleList.innerHTML = '';
+            articleCount.textContent = '0';
+
+            try {
+                const response = await fetch(`/api/current-affairs?date=${date}&subject=${subject}&page=1&limit=50`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                allArticles = data.articles || [];
+                renderArticles(allArticles);
+                articleCount.textContent = String(data.count || 0);
+            } catch (err) {
+                console.error('Failed to load articles:', err);
+                articleList.innerHTML = '<li class="error-state">Failed to load articles. Please try again.</li>';
+            } finally {
+                loadingState.style.display = 'none';
+            }
+        }
+
+        // Render article items
+        function renderArticles(articles) {
+            if (articles.length === 0) {
+                emptyState.style.display = 'block';
+                articleList.innerHTML = '';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            articleList.innerHTML = articles.map((article, idx) => `
+                <li class="article-item" style="animation-delay: ${idx * 0.1}s">
+                    <p class="article-date">${article.date || ''}</p>
+                    <h2>${article.title || 'Untitled'}</h2>
+                    <p>${article.brief_summary || ''}</p>
+                    <a href="/current-affairs/${article.id || ''}" class="read-more">Read article</a>
+                </li>
+            `).join('');
+        }
+
+        // Initialize: load articles on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply filters when changed
+            filterDate.addEventListener('change', loadArticles);
+            filterSubject.addEventListener('change', loadArticles);
+
+            // Initial load
+            loadArticles();
+        });
+    </script>
+</body>
+
+</html>

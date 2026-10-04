@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz — Daily Current Affairs</title>
+    <meta name="description"
+        content="Quiz is a separate revision experience. The independent quiz section arrives in Phase 3.">
+    <link rel="canonical" href="/quiz/">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="/" aria-label="Daily Current Affairs — home">
+                <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/quiz/">Quiz</a></li>
+                    <li><a href="/revision/">Revision</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="site-main" id="main">
+        <h1>Quiz</h1>
+        <div class="ruled stack-md">
+            <p>Quiz is selective and separate from reading — not every article has a quiz. The quiz experience
+                arrives in Phase 3.</p>
+            <p>You can filter articles by date and subject, then test yourself on important facts.</p>
+            <p><a href="/current-affairs/">Back to Current Affairs</a></p>
+        </div>
+    </main>
+    <nav class="mobile-nav" aria-label="Primary mobile">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/current-affairs/">Current Affairs</a></li>
+            <li><a href="/quiz/">Quiz</a></li>
+            <li><a href="/revision/">Revision</a></li>
+        </ul>
+    </nav>
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <p>Daily Current Affairs &middot; Built for students</p>
+            <nav aria-label="Legal">
+                <ul>
+                    <li><a href="/legal/privacy-policy/">Privacy</a></li>
+                    <li><a href="/legal/cookie-policy/">Cookies</a></li>
+                    <li><a href="/legal/terms/">Terms</a></li>
+                    <li><a href="/legal/disclaimer/">Disclaimer</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+
+    <script>
+        // Quiz listing page - Phase 2 scaffolding
+        // Full quiz generation will arrive in Phase 3 with AI/ML pipeline integration
+        document.addEventListener('DOMContentLoaded', () => {
+            // TODO: In Phase 3, integrate with /api/current-affairs to show which articles have quizzes
+            // and generate MCQ questions from the what_is_important field
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,108 @@
+/**
+ * Daily Current Affairs — Design Tokens (Phase 1.1)
+ * Source: PROJECT_SPEC.md §19 Visual Design + §20 Typography + §21 Accessibility
+ *
+ * Direction: calm academic + modern + exam clarity.
+ * Warm off-white bg, white cards, deep indigo primary, amber accent.
+ * All text colors chosen for ≥4.5:1 contrast on their backgrounds.
+ * Single web font (Sanchez, display=swap) per §20; system stack fallback if it fails.
+ */
+
+:root {
+  /* Surfaces */
+  --color-bg: #faf8f4;
+  /* warm off-white page */
+  --color-surface: #ffffff;
+  /* white cards */
+  --color-surface-muted: #f1efe9;
+
+  /* Brand */
+  --color-primary: #3730a3;
+  /* deep indigo (indigo-800) — white text = ~8.6:1 */
+  --color-primary-ink: #ffffff;
+  --color-primary-hover: #312e81;
+  /* darker for hover, still ≥10:1 with white */
+  --color-accent: #92400e;
+  /* dark amber for text/icons on light bg (≥5:1) */
+  --color-accent-bg: #fef3c7;
+  /* pale gold wash for EXAM POINT panels */
+  --color-accent-border: #f59e0b;
+
+  /* Text */
+  --color-text: #1c1917;
+  /* warm charcoal (stone-900) on bg = ~15:1 */
+  --color-muted: #475569;
+  /* slate-600 on white = ~7:1, on bg = ~6.5:1 */
+  --color-faint: #64748b;
+  /* slate-500 — decorative/meta only, never body copy */
+
+  /* Lines */
+  --color-border: #e7e5e4;
+  /* warm gray */
+  --color-border-strong: #d6d3d1;
+
+  /* Feedback (text-on-light, all ≥4.5:1) */
+  --color-success: #166534;
+  /* green-800 */
+  --color-success-bg: #dcfce7;
+  --color-danger: #b91c1c;
+  /* red-700 */
+  --color-danger-bg: #fee2e2;
+  --color-focus: #1d4ed8;
+  /* blue-700 focus ring */
+
+  /* Typography — Sanchez for reading and headings; system sans for UI chrome. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-display: "Sanchez", Georgia, serif;
+  --font-hand: "Sanchez", Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  /* Body leading — base.css applies this on body; 1.7 x 1.2rem = --ruled-line. */
+  --leading-body: 1.7;
+  --leading-heading: 1.25;
+  --leading-tight: 1.15;
+
+  /* Layout */
+  --max-content: 46rem;
+  /* ~736px — matches previous 720px shell */
+  --max-reading: 68ch;
+  /* article reading width per §16 + §21 */
+  --gutter: 1rem;
+
+  /* Shape + elevation: sharp notebook-paper edges (no rounded-card look).
+     Radius scale kept for focus rings only — component surfaces stay square. */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --shadow-sm: 0 1px 0 rgb(28 25 23 / 0.12);
+
+  /* Writing rhythm (Phase 1.12). The body line-height matches the ruled-line
+     spacing so text inside .ruled zones respects the grid. Outside ruled zones
+     the page is plain paper — no background rules are drawn. */
+  --ruled-line: 2.04rem;
+  --ruled-color: #d9cfc2;
+  /* Rule offset is only applied inside .ruled zones, never on the page itself. */
+  --ruled-rule-offset: 0.68em;
+
+  /* Exam-Point signature (Option A identity) */
+  --exam-rule-width: 5px;
+  --stamp-rotate: -1.2deg;
+
+  /* Touch + motion */
+  --touch-min: 44px;
+  --transition-fast: 120ms ease-out;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-muted: #334155;
+    --color-border: #a8a29e;
+  }
+}
