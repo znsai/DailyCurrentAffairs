@@ -579,6 +579,16 @@ Home | CA | Quiz | Revision
 
 Navigation labels must remain understandable without icons.
 
+### Mobile paging pattern
+
+On small screens the reading and quiz experiences use one-card-per-view paging:
+
+- Current Affairs mobile: one article per view with Previous/Next pager controls.
+- Quiz mobile: one question per view with Previous/Next pager controls.
+- Page changes use a single short slide/fade transition, disabled under `prefers-reduced-motion`.
+- Pager buttons expose position text (for example "Article 2 of 10") so progress is never color-only.
+- Desktop keeps the comfortable multi-card list; paging is a mobile progressive enhancement, not a separate codebase.
+
 ---
 
 ## 19. Visual Design Direction
@@ -605,7 +615,21 @@ Do not hard-code a palette before validating accessibility contrast.
 
 A subtle bee-inspired visual language may connect to the broader MyBeezNus ecosystem, but the current-affairs site must remain professional and suitable for serious exam preparation.
 
-Avoid childish illustrations, excessive gradients, excessive glassmorphism and decorative animation.
+The approved identity is a **sharp-edged study notebook**: square paper surfaces, **scoped ruled writing zones** (the ruled lines are drawn by the text block itself and align exactly to the text line grid), underline-style fields, indigo + amber ink accents, Sanchez display type for headings and exam stamps (§20), and readable Sanchez body text sized up to preserve legibility.
+
+Ruled lines belong to **writing zones only** (`.ruled`), never to the page as a whole: header, footer, cards, buttons, badges, panels and form fields stay plain paper, so a ruled line can never cut across text that is not on the grid. The contract for anything inside a `.ruled` zone is:
+
+- `line-height` must equal `--ruled-line` (the rule spacing), so line *n*'s rule always sits under line *n*.
+- all vertical spacing inside the zone must be a whole multiple of `--ruled-line`; a partial offset shifts the rules off the text.
+- `.ruled` must never nest inside `.ruled` (two gradients at different phases draw two sets of rules).
+- panels (Exam Point, notices) and interactive chrome stay outside zones; when they sit between zones their own spacing keeps the notebook rhythm.
+- vertical margins on block elements (headings, paragraphs, list items, fields) must be `0` or a whole multiple of `--ruled-line` so that the text block's top and bottom rules align with the grid.
+
+`--ruled-rule-offset` is the single tuning knob for where the rule ink sits inside a line box (web fonts vary by platform fallback, so this value is tuned rather than derived). Recommended value: `0.68em` (sets the rule ink centered within the x-height of the body font).
+
+The body font line-height (`--leading-body`, currently 1.7) multiplies with the body font size (1.2rem — both are applied to `body` in base.css, and the token is the single source of truth for the leading) to produce `--ruled-line` (currently 1.7 × 1.2rem = 2.04rem). This product must be maintained: changing the font size or line-height requires recalculating `--ruled-line` to preserve grid alignment.
+
+Avoid childish illustrations, excessive gradients, excessive glassmorphism and decorative animation. Page-change motion is limited to one short, subtle slide/fade for article and quiz paging, and is fully disabled under `prefers-reduced-motion`.
 
 ---
 
@@ -613,12 +637,9 @@ Avoid childish illustrations, excessive gradients, excessive glassmorphism and d
 
 Prioritize readability.
 
-Potential pairing:
+Use Sanchez for headings, article body, summaries, and exam-point text. Keep system sans-serif for UI chrome, labels, and buttons.
 
-- Inter or equivalent modern sans-serif for UI
-- Newsreader/Merriweather or equivalent reading-oriented serif for selected article headings if it improves the design
-
-Do not add fonts unnecessarily if they hurt performance.
+Load Sanchez with `display=swap` and only the available regular weight. If font loading hurts performance on low-end networks, fall back to system stacks without breaking layout.
 
 ---
 
