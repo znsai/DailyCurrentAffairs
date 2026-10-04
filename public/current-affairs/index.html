@@ -36,42 +36,6 @@
     </header>
     <main class="site-main archive-shell" id="main">
         <div class="archive-layout">
-            <!-- Filter controls -->
-            <div class="archive-filters" aria-label="Filter current affairs">
-                <label class="filter-label" for="filter-date">Date:</label>
-                <select id="filter-date" class="filter-select">
-                    <option value="">All dates</option>
-                    <option value="2026-10-04">04 Oct 2026</option>
-                    <option value="2026-10-03">03 Oct 2026</option>
-                    <option value="2026-10-02">02 Oct 2026</option>
-                    <option value="2026-10-01">01 Oct 2026</option>
-                </select>
-                <label class="filter-label" for="filter-subject">Subject:</label>
-                <select id="filter-subject" class="filter-select">
-                    <option value="">All subjects</option>
-                    <option value="Polity & Governance">Polity & Governance</option>
-                    <option value="Economy & Banking">Economy & Banking</option>
-                    <option value="National Affairs">National Affairs</option>
-                    <option value="International Relations">International Relations</option>
-                    <option value="Defence & Security">Defence & Security</option>
-                    <option value="Science & Technology">Science & Technology</option>
-                    <option value="Environment">Environment</option>
-                    <option value="Health">Health</option>
-                    <option value="Agriculture">Agriculture</option>
-                    <option value="Government Schemes">Government Schemes</option>
-                    <option value="Social Issues">Social Issues</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Awards & Honours">Awards & Honours</option>
-                    <option value="Appointments">Appointments</option>
-                    <option value="Reports & Indices">Reports & Indices</option>
-                    <option value="Books & Authors">Books & Authors</option>
-                    <option value="Art & Culture">Art & Culture</option>
-                    <option value="Geography">Geography</option>
-                    <option value="Important Days">Important Days</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
             <aside class="archive-sidebar">
                 <p class="archive-kicker">Archive</p>
                 <h1>Current Affairs</h1>
@@ -88,11 +52,49 @@
                 <p>Rule zone — not visible on page.</p>
             </div>
 
-            <section class="archive-content" aria-label="Daily current affairs articles">
-                <p class="loading-state" id="loading-state">Loading articles…</p>
-                <p class="empty-state" id="empty-state" style="display:none;">No articles match your filters.</p>
-                <ul class="article-list" id="article-list"></ul>
-            </section>
+            <div class="archive-feed">
+                <!-- Filter controls -->
+                <div class="archive-filters" role="group" aria-label="Filter current affairs">
+                    <label class="filter-label" for="filter-date">Date:</label>
+                    <select id="filter-date" class="filter-select">
+                        <option value="">All dates</option>
+                        <option value="2026-10-04">04 Oct 2026</option>
+                        <option value="2026-10-03">03 Oct 2026</option>
+                        <option value="2026-10-02">02 Oct 2026</option>
+                        <option value="2026-10-01">01 Oct 2026</option>
+                    </select>
+                    <label class="filter-label" for="filter-subject">Subject:</label>
+                    <select id="filter-subject" class="filter-select">
+                        <option value="">All subjects</option>
+                        <option value="Polity & Governance">Polity & Governance</option>
+                        <option value="Economy & Banking">Economy & Banking</option>
+                        <option value="National Affairs">National Affairs</option>
+                        <option value="International Relations">International Relations</option>
+                        <option value="Defence & Security">Defence & Security</option>
+                        <option value="Science & Technology">Science & Technology</option>
+                        <option value="Environment">Environment</option>
+                        <option value="Health">Health</option>
+                        <option value="Agriculture">Agriculture</option>
+                        <option value="Government Schemes">Government Schemes</option>
+                        <option value="Social Issues">Social Issues</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Awards & Honours">Awards & Honours</option>
+                        <option value="Appointments">Appointments</option>
+                        <option value="Reports & Indices">Reports & Indices</option>
+                        <option value="Books & Authors">Books & Authors</option>
+                        <option value="Art & Culture">Art & Culture</option>
+                        <option value="Geography">Geography</option>
+                        <option value="Important Days">Important Days</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <section class="archive-content" aria-label="Daily current affairs articles">
+                    <p class="loading-state" id="loading-state">Loading articles…</p>
+                    <p class="empty-state" id="empty-state" style="display:none;">No articles match your filters.</p>
+                    <ul class="article-list" id="article-list"></ul>
+                </section>
+            </div>
         </div>
     </main>
     <nav class="mobile-nav" aria-label="Primary mobile">

@@ -68,6 +68,58 @@
   gap: 1.25rem;
 }
 
+/* Content track: filters and results share the wide column, stacked. */
+.archive-feed {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+}
+
+.archive-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.filter-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  color: var(--color-muted);
+}
+
+/* Underline-style selects, matching .field so the form-line look holds. */
+.filter-select {
+  padding: 0.35rem 0.15rem;
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  border: none;
+  border-bottom: 2px solid var(--color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.filter-select:focus-visible {
+  border-bottom-color: var(--color-primary);
+  outline-offset: 4px;
+}
+
+.article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.loading-state,
+.empty-state {
+  color: var(--color-muted);
+}
+
 .article-item {
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--color-border);
