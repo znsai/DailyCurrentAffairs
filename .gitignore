@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Wrangler / Cloudflare local state
+.wrangler/
+.dev.vars
+
+# OS artifacts
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
