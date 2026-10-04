@@ -1,13 +1,20 @@
 name = "dailycurrentaffairs"
 main = "worker/index.js"
 compatibility_date = "2026-10-01"
+# pg needs Node built-ins (node:net / node:tls) to reach Neon over TLS.
+compatibility_flags = ["nodejs_compat"]
 
 # Static assets served from public/ (frontend)
 [assets]
 directory = "./public"
-# Serve static files first; unmatched routes fall through to the Worker (API)
+# Expose the asset store to Worker code as env.ASSETS — clean article URLs
+# (/current-affairs/15) fetch current-affairs/article.html through it.
+binding = "ASSETS"
+# Serve static files first; unmatched routes fall through to the Worker (API).
+# /current-affairs/* is worker-first so clean article URLs (/current-affairs/15)
+# can serve the article page; everything else under it proxies to assets.
 not_found_handling = "none"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/current-affairs/*"]
 
 # Environment variables (non-secret) — secrets are set via dashboard or wrangler secret
 [vars]

@@ -7,6 +7,7 @@
  * Endpoints (minimal set per AI_RULES.md section 8):
  *   GET /api/health                 -> liveness check
  *   GET /api/current-affairs        -> latest articles (?date=YYYY-MM-DD & ?subject= & ?page= & ?limit=)
+ *   GET /api/current-affairs/:id    -> one article (article.html reads it; /current-affairs/:id serves the shell)
  *   GET /api/search?q=keyword       -> search titles/summaries
  *
  * DATABASE_URL is provided via Cloudflare secrets/vars — never hardcoded.
@@ -72,13 +73,56 @@ export default {
       return handleCurrentAffairs(url, env);
     }
 
+    const articleIdMatch = pathname.match(/^\/api\/current-affairs\/(\d+)\/?$/);
+    if (articleIdMatch && request.method === "GET") {
+      return handleArticle(Number(articleIdMatch[1]), env);
+    }
+
     if (pathname === "/api/search" && request.method === "GET") {
       return handleSearch(url, env);
+    }
+
+    // Clean article URLs (/current-affairs/15) serve the article shell, and any
+    // other /current-affairs/* path falls through to static assets — the assets
+    // config routes that prefix to the Worker first (see wrangler.toml).
+    if (request.method === "GET" || request.method === "HEAD") {
+      const articleSlug = pathname.match(/^\/current-affairs\/(\d+)\/?$/);
+      if (articleSlug) {
+        return env.ASSETS.fetch(new Request(new URL("/current-affairs/article.html", url)));
+      }
+      if (pathname.startsWith("/current-affairs/")) {
+        return env.ASSETS.fetch(request);
+      }
     }
 
     return errorResponse("Not found", 404);
   },
 };
+
+/** Build filter conditions from optional date + subject params */
+function buildCurrentAffairsWhere(url) {
+  const conditions = [];
+  const params = [];
+
+  const date = url.searchParams.get("date");
+  if (date) {
+    if (!isValidDate(date)) {
+      return { error: "Invalid date format, expected YYYY-MM-DD", sql: "", params: [] };
+    }
+    params.push(date);
+    conditions.push(`date = $${params.length}`);
+  }
+
+  const subject = url.searchParams.get("subject");
+  if (subject) {
+    params.push(subject);
+    conditions.push(`subject = $${params.length}`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  return { error: null, sql: where, params };
+}
 
 /**
  * GET /api/current-affairs?date=YYYY-MM-DD&subject=Economy&page=1&limit=20
@@ -89,42 +133,54 @@ async function handleCurrentAffairs(url, env) {
     return errorResponse("DATABASE_URL is not configured", 500);
   }
 
-  const date = url.searchParams.get("date");
-  const subject = url.searchParams.get("subject");
-  if (date && !isValidDate(date)) {
-    return errorResponse("Invalid date format, expected YYYY-MM-DD");
+  const { error, sql, params } = buildCurrentAffairsWhere(url);
+  if (error) {
+    return errorResponse(error, 400);
   }
 
   const { page, limit, offset } = parsePagination(url);
 
-  // Build parameterized query (no string interpolation of user input)
-  const conditions = [];
-  const params = [];
-  if (date) {
-    params.push(date);
-    conditions.push(`date = $${params.length}`);
-  }
-  if (subject) {
-    params.push(subject);
-    conditions.push(`subject = $${params.length}`);
-  }
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-
   params.push(limit, offset);
 
-  const sql = `
-    SELECT id, date, title, url, subject, brief_summary, what_is_important, created_at
+  const sqlFull = `
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at
     FROM current_affairs
-    ${where}
+    ${sql}
     ORDER BY date DESC, id DESC
     LIMIT $${params.length - 1} OFFSET $${params.length}
   `;
 
   try {
-    const rows = await query(env.DATABASE_URL, sql, params);
+    const rows = await query(env.DATABASE_URL, sqlFull, params);
     return json({ page, limit, count: rows.length, articles: rows });
   } catch (err) {
     console.error("current-affairs query failed:", err);
+    return errorResponse("Database query failed", 500);
+  }
+}
+
+/**
+ * GET /api/current-affairs/:id -> one article as a raw row (article.html renders it directly).
+ */
+async function handleArticle(id, env) {
+  if (!env.DATABASE_URL) {
+    return errorResponse("DATABASE_URL is not configured", 500);
+  }
+
+  const sql = `
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at
+    FROM current_affairs
+    WHERE id = $1
+  `;
+
+  try {
+    const rows = await query(env.DATABASE_URL, sql, [id]);
+    if (rows.length === 0) {
+      return errorResponse("Article not found", 404);
+    }
+    return json(rows[0]);
+  } catch (err) {
+    console.error("article query failed:", err);
     return errorResponse("Database query failed", 500);
   }
 }
@@ -150,7 +206,7 @@ async function handleSearch(url, env) {
   const params = [`%${q}%`];
 
   const sql = `
-    SELECT id, date, title, url, subject, brief_summary, what_is_important, created_at
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at
     FROM current_affairs
     WHERE title ILIKE $1
        OR brief_summary ILIKE $1

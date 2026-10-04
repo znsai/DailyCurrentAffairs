@@ -1,18 +1,18 @@
 {
-  "name": "daily-current-affairs",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Lightweight current affairs website for Indian competitive exam preparation. n8n -> Neon PostgreSQL -> Cloudflare Worker -> Frontend.",
-  "type": "module",
-  "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
-  },
-  "devDependencies": {
-    "wrangler": "^4.0.0"
-  },
-  "dependencies": {
-    "@neon/config": "^1.8.3",
-    "pg": "^8.23.1"
-  }
+    "name": "daily-current-affairs",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Lightweight current affairs website for Indian competitive exam preparation. n8n -> Neon PostgreSQL -> Cloudflare Worker -> Frontend.",
+    "type": "module",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy"
+    },
+    "devDependencies": {
+        "wrangler": "^4.0.0"
+    },
+    "dependencies": {
+        "@neon/config": "^1.8.3",
+        "pg": "^8.23.1"
+    }
 }
