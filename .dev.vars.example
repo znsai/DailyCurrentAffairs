@@ -1,0 +1,5 @@
+# Copy this file to .dev.vars for local development (wrangler dev reads it automatically).
+# NEVER commit the real .dev.vars or .env files.
+
+# Neon pooled connection string (from `neon connection-string` — use the -pooler URL for serverless)
+DATABASE_URL=postgresql://user:password@host-pooler.region.aws.neon.tech/neondb?sslmode=require

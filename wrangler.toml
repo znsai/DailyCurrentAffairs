@@ -1,0 +1,14 @@
+name = "daily-current-affairs"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+
+# Static assets served from public/ (frontend)
+[assets]
+directory = "./public"
+# Serve static files first; unmatched routes fall through to the Worker (API)
+not_found_handling = "none"
+run_worker_first = ["/api/*"]
+
+# Environment variables (non-secret) — secrets are set via dashboard or wrangler secret
+[vars]
+ENVIRONMENT = "production"
