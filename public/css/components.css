@@ -24,6 +24,11 @@
   transition: background var(--transition-fast);
 }
 
+/* [hidden] must win over the button display (V1 conditional actions). */
+.btn[hidden] {
+  display: none;
+}
+
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-primary-ink);
@@ -332,6 +337,98 @@
   transform: rotate(var(--stamp-rotate));
 }
 
+/* Article section label (V1 reading hierarchy). */
+.article-section-label {
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Active recall block (V1): question first, answer revealed on request. */
+.test-yourself {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid var(--color-border-strong);
+}
+
+.test-yourself-question {
+  margin-bottom: 0.75rem;
+  font-family: var(--font-hand);
+  font-size: var(--text-lg);
+}
+
+.test-yourself-answer {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-muted);
+}
+
+.test-yourself-correct {
+  margin-bottom: 0.25rem;
+  color: var(--color-success);
+}
+
+.test-yourself-explanation {
+  color: var(--color-muted);
+}
+
+.test-yourself-more {
+  margin-top: 0.75rem;
+  font-size: var(--text-sm);
+}
+
+/* Daily Quiz session (V1): one question at a time with text-first feedback. */
+.quiz-toolbar {
+  margin-top: 0.75rem;
+}
+
+.quiz-feedback {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-muted);
+}
+
+.quiz-verdict {
+  font-size: var(--text-lg);
+  margin-bottom: 0.25rem;
+}
+
+.quiz-verdict.is-correct {
+  color: var(--color-success);
+}
+
+.quiz-verdict.is-wrong {
+  color: var(--color-danger);
+}
+
+.quiz-answer-line {
+  margin: 0.15rem 0;
+}
+
+.quiz-explanation {
+  margin-top: 0.5rem;
+  color: var(--color-muted);
+}
+
+/* Marked-answer rules stay inside the border box, like the checked rule, so
+   answered rows keep the ruled-grid rhythm in study zones. */
+.quiz-options .quiz-option-row.is-correct {
+  border-bottom: 2px solid var(--color-success);
+}
+
+.quiz-options .quiz-option-row.is-correct .quiz-option-text {
+  font-weight: 700;
+}
+
+.quiz-option-row:has(input:checked).is-wrong {
+  border-bottom-color: var(--color-danger);
+}
+
 /* Mobile paging: one card per view with a short slide/fade on change.
    Desktop keeps the list. Motion fully disabled under reduced-motion. */
 .pager {
@@ -370,7 +467,67 @@
   }
 }
 
-/* Demo-only helpers for the component gallery page */
+/* Quiz Result (V1): plain score summary with an answer review, no analytics. */
+.quiz-result-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  margin: 0.75rem 0;
+}
+
+.quiz-result-stats div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.quiz-result-stats dt {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.quiz-result-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--color-text);
+}
+
+.quiz-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.quiz-review {
+  margin: 1rem 0 0;
+  padding-inline-start: 1.25rem;
+}
+
+.quiz-review-item {
+  margin-bottom: 1rem;
+}
+
+.quiz-review-question {
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.quiz-review-answer {
+  margin: 0.15rem 0;
+}
+
+.quiz-review-explanation {
+  margin: 0.15rem 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* Inline flex-row helpers (component gallery demos + loading rows) */
 .demo-grid {
   display: grid;
   gap: 1rem;

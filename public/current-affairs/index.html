@@ -28,8 +28,7 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li><a href="/current-affairs/" aria-current="page">Current Affairs</a></li>
-                    <li><a href="/quiz/">Quiz</a></li>
-                    <li><a href="/revision/">Revision</a></li>
+                    <li><a href="/quiz/">Daily Quiz</a></li>
                 </ul>
             </nav>
         </div>
@@ -58,10 +57,6 @@
                     <label class="filter-label" for="filter-date">Date:</label>
                     <select id="filter-date" class="filter-select">
                         <option value="">All dates</option>
-                        <option value="2026-10-04">04 Oct 2026</option>
-                        <option value="2026-10-03">03 Oct 2026</option>
-                        <option value="2026-10-02">02 Oct 2026</option>
-                        <option value="2026-10-01">01 Oct 2026</option>
                     </select>
                     <label class="filter-label" for="filter-subject">Subject:</label>
                     <select id="filter-subject" class="filter-select">
@@ -101,8 +96,7 @@
         <ul>
             <li><a href="/">Home</a></li>
             <li><a href="/current-affairs/" aria-current="page">Current Affairs</a></li>
-            <li><a href="/quiz/">Quiz</a></li>
-            <li><a href="/revision/">Revision</a></li>
+            <li><a href="/quiz/">Daily Quiz</a></li>
         </ul>
     </nav>
     <footer class="site-footer">
@@ -160,7 +154,47 @@
             }
         }
 
-        // Render article items
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function localDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatCardDate(dateString) {
+            if (!dateString) return '';
+            return new Intl.DateTimeFormat('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+            }).format(new Date(`${dateString}T12:00:00`));
+        }
+
+        // Rolling 30-day date options so the filter never goes stale (V1).
+        function buildDateOptions() {
+            const today = new Date();
+            for (let offset = 0; offset < 30; offset += 1) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - offset);
+                date.setHours(12, 0, 0, 0);
+                const option = document.createElement('option');
+                option.value = localDateString(date);
+                option.textContent = new Intl.DateTimeFormat('en-IN', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                }).format(date);
+                filterDate.append(option);
+            }
+        }
+
+        // Render article items as study cards (V1): subject + date, title,
+        // summary, exam point, source and a Test Yourself action only when a
+        // question exists for the article.
         function renderArticles(articles) {
             if (articles.length === 0) {
                 emptyState.style.display = 'block';
@@ -169,14 +203,35 @@
             }
 
             emptyState.style.display = 'none';
-            articleList.innerHTML = articles.map((article, idx) => `
-                <li class="article-item" style="animation-delay: ${idx * 0.1}s">
-                    <p class="article-date">${article.date || ''}</p>
-                    <h2>${article.title || 'Untitled'}</h2>
-                    <p>${article.brief_summary || ''}</p>
-                    <a href="/current-affairs/${article.id || ''}" class="read-more">Read article</a>
-                </li>
-            `).join('');
+            articleList.innerHTML = articles.map((article) => {
+                const id = encodeURIComponent(article.id || '');
+                const subject = escapeHtml(article.subject || 'Current Affairs');
+                const date = escapeHtml(formatCardDate(article.date));
+                const title = escapeHtml(article.title || 'Untitled');
+                const summary = escapeHtml(article.brief_summary || '');
+                const examPoint = article.what_is_important
+                    ? `<div class="exam-point stack-md">
+                        <p class="exam-point-title"><span aria-hidden="true">&#11088; </span>Exam Point</p>
+                        <p>${escapeHtml(article.what_is_important)}</p>
+                    </div>`
+                    : '';
+                const source = article.url
+                    ? `<a class="article-source" href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer">Read original source<span class="sr-only"> (opens in a new tab)</span></a>`
+                    : '';
+                const testYourself = article.has_quiz
+                    ? `<a class="btn btn-secondary" href="/current-affairs/${id}#test-yourself">Test Yourself</a>`
+                    : '';
+                const actions = (source || testYourself)
+                    ? `<p class="article-item-actions">${source}${testYourself}</p>`
+                    : '';
+                return `<li class="article-item">
+                    <p class="study-eyebrow">${subject} <span class="study-date">${date}</span></p>
+                    <h2><a href="/current-affairs/${id}">${title}</a></h2>
+                    <p>${summary}</p>
+                    ${examPoint}
+                    ${actions}
+                </li>`;
+            }).join('');
         }
 
         // Initialize: load articles on page load
@@ -185,7 +240,8 @@
             filterDate.addEventListener('change', loadArticles);
             filterSubject.addEventListener('change', loadArticles);
 
-            // Initial load
+            // Dynamic date options + initial load
+            buildDateOptions();
             loadArticles();
         });
     </script>

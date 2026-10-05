@@ -24,6 +24,13 @@
             <a class="brand" href="/" aria-label="Daily Current Affairs — home">
                 <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
             </a>
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    <li><a href="/" aria-current="page">Home</a></li>
+                    <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/quiz/">Daily Quiz</a></li>
+                </ul>
+            </nav>
             <form class="home-search" id="home-search" role="search">
                 <label class="visually-hidden" for="search-query">Search current affairs</label>
                 <input id="search-query" name="q" type="search" placeholder="Search topics, schemes, places"
@@ -54,7 +61,11 @@
                     <div>
                         <p class="home-date-month" id="date-month"></p>
                         <h1 id="home-heading">Today&rsquo;s current affairs</h1>
-                        <p class="home-feed-count" id="feed-count" aria-live="polite">Loading updates&hellip;</p>
+                        <p class="home-feed-count" id="feed-count" aria-live="polite">Loading current affairs&hellip;</p>
+                        <p class="home-start" id="start-wrap" hidden>
+                            <a class="btn btn-primary" id="start-today" href="/current-affairs/">Start today&rsquo;s current
+                                affairs</a>
+                        </p>
                     </div>
                 </header>
                 <ul class="home-article-list ruled" id="article-list" aria-live="polite"></ul>
@@ -62,11 +73,11 @@
             </section>
 
             <aside class="home-sidebar" aria-label="Study and more stories">
-                <section class="home-quiz-panel">
-                    <p class="home-panel-kicker">Revision</p>
-                    <h2>Quiz practice</h2>
-                    <p>Quizzes are a separate revision experience, with questions selected from important articles.</p>
-                    <a class="btn btn-primary" href="/quiz/">Visit quiz section</a>
+                <section class="home-quiz-panel" aria-labelledby="today-quiz-heading">
+                    <p class="home-panel-kicker">Today&rsquo;s Quiz</p>
+                    <h2 id="today-quiz-heading">Daily Quiz</h2>
+                    <p id="today-quiz-status" role="status">Checking today&rsquo;s quiz&hellip;</p>
+                    <a class="btn btn-primary" id="today-quiz-start" href="/quiz/" hidden>Start today&rsquo;s quiz</a>
                 </section>
                 <section class="home-more-panel" aria-labelledby="more-heading">
                     <h2 id="more-heading">More to read</h2>
@@ -81,8 +92,7 @@
         <ul>
             <li><a href="/" aria-current="page">Home</a></li>
             <li><a href="/current-affairs/">Current Affairs</a></li>
-            <li><a href="/quiz/">Quiz</a></li>
-            <li><a href="/revision/">Revision</a></li>
+            <li><a href="/quiz/">Daily Quiz</a></li>
         </ul>
     </nav>
     <footer class="site-footer">
@@ -108,6 +118,10 @@
         const dateStrip = document.getElementById('date-strip');
         const moreArticles = document.getElementById('more-articles');
         const dateHeading = document.getElementById('home-heading');
+        const startWrap = document.getElementById('start-wrap');
+        const startToday = document.getElementById('start-today');
+        const quizStatus = document.getElementById('today-quiz-status');
+        const quizStart = document.getElementById('today-quiz-start');
         let selectedDate = localDateString(new Date());
         let selectedSubject = '';
         let visibleArticles = [];
@@ -243,18 +257,52 @@
                 const data = await response.json();
                 const articles = data.articles || [];
                 renderArticles(articles);
-                feedCount.textContent = `${articles.length} ${articles.length === 1 ? 'update' : 'updates'}`;
+                feedCount.textContent = query
+                    ? `${articles.length} ${articles.length === 1 ? 'result' : 'results'}`
+                    : `${articles.length} current-affairs ${articles.length === 1 ? 'item' : 'items'}`;
+                updateStartCta(query, articles);
                 if (articles.length === 0) {
                     feedState.textContent = query ? 'No articles found. Try another search.' : 'No articles for this date yet.';
                     feedState.hidden = false;
                 }
             } catch (error) {
                 articleList.replaceChildren();
-                feedCount.textContent = 'Updates unavailable';
+                feedCount.textContent = 'Current affairs unavailable';
+                startWrap.hidden = true;
                 feedState.textContent = error.message;
                 feedState.hidden = false;
             } finally {
                 articleList.removeAttribute('aria-busy');
+            }
+        }
+
+        // Primary action: start reading today's first item (V1 Home).
+        function updateStartCta(query, articles) {
+            const show = !query
+                && !selectedSubject
+                && selectedDate === localDateString(new Date())
+                && articles.length > 0;
+            startWrap.hidden = !show;
+            if (show) startToday.href = `/current-affairs/${encodeURIComponent(articles[0].id)}`;
+        }
+
+        // Today's Quiz availability (V1 Home): shown only when questions exist.
+        async function loadTodayQuiz() {
+            try {
+                const response = await fetch(`/api/quiz?date=${localDateString(new Date())}&limit=50`);
+                if (!response.ok) throw new Error("Unable to load today's quiz.");
+                const data = await response.json();
+                const questions = data.questions || [];
+                if (questions.length > 0) {
+                    quizStatus.textContent = `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} ready`;
+                    quizStart.hidden = false;
+                } else {
+                    quizStatus.textContent = "Today's quiz isn't published yet.";
+                    quizStart.hidden = true;
+                }
+            } catch (error) {
+                quizStatus.textContent = "Today's quiz is unavailable right now.";
+                quizStart.hidden = true;
             }
         }
 
@@ -277,6 +325,7 @@
         buildDateStrip();
         loadArticles();
         loadMoreArticles();
+        loadTodayQuiz();
     </script>
 </body>
 

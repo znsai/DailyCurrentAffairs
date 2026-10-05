@@ -144,7 +144,7 @@ check(
 );
 /* -- 7./8. Zone nesting + panel placement ----------------------------- */
 const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
-const BANNED_IN_ZONE = ['exam-point', 'notice', 'field'];
+const BANNED_IN_ZONE = ['exam-point', 'notice', 'field', 'test-yourself'];
 
 function classesOf(attrs) {
   const match = attrs.match(/class\s*=\s*"([^"]*)"/);
@@ -244,6 +244,55 @@ check(
   /<div class="ruled">/.test(states) && !/exam-point/.test(statesZone.split('</div>')[0]),
   'js: simulated content state renders an aligned article zone',
   'js: simulated content state is not an aligned zone (or holds a panel inside it)'
+);
+
+/* -- 10. V1 navigation + quiz contracts -------------------------------- */
+/* Primary/mobile navs must show Home / Current Affairs / Daily Quiz and must
+   not link Revision, Progress or Mock Tests (PROJECT_SPEC_V1_UX.md §3). */
+for (const file of htmlFiles()) {
+  const html = readFileSync(file, 'utf8');
+  const navBlocks = html.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi) || [];
+  const primaryNavs = navBlocks.filter((block) => /site-nav|mobile-nav/.test(block));
+  if (primaryNavs.length === 0) continue;
+  const hasRevision = primaryNavs.some((block) => block.includes('href="/revision/"'));
+  check(
+    !hasRevision,
+    `${file}: primary nav has no Revision link`,
+    `${file}: primary nav still links /revision/ (V1 keeps Revision out of navigation)`
+  );
+  const hasDailyQuiz = primaryNavs.some((block) => block.includes('/quiz/') && />Daily Quiz</.test(block));
+  check(
+    hasDailyQuiz,
+    `${file}: primary nav links Daily Quiz`,
+    `${file}: primary nav does not link Daily Quiz (V1: Home / Current Affairs / Daily Quiz)`
+  );
+  const hasHome = primaryNavs.some((block) => block.includes('href="/"'));
+  check(
+    hasHome,
+    `${file}: primary nav links Home`,
+    `${file}: primary nav does not link Home (V1: Home / Current Affairs / Daily Quiz)`
+  );
+}
+
+/* Worker quiz routes (V1): list + article lookup. */
+const workerSource = readFileSync(join('worker', 'index.js'), 'utf8');
+check(
+  /pathname === "\/api\/quiz" && request\.method === "GET"/.test(workerSource),
+  'worker: GET /api/quiz route registered (V1 Daily Quiz)',
+  'worker: GET /api/quiz route missing (V1 needs the Daily Quiz endpoint)'
+);
+check(
+  /pathname === "\/api\/quiz\/article" && request\.method === "GET"/.test(workerSource),
+  'worker: GET /api/quiz/article route registered (V1 Test Yourself lookup)',
+  'worker: GET /api/quiz/article route missing (V1 needs the article question lookup)'
+);
+
+/* Quiz page wires the quiz session script (V1). */
+const quizPage = readFileSync(join('public', 'quiz', 'index.html'), 'utf8');
+check(
+  quizPage.includes('src="/js/quiz.js"'),
+  'quiz: page loads /js/quiz.js (V1 Daily Quiz session)',
+  'quiz: page does not load /js/quiz.js (V1 needs the Daily Quiz session script)'
 );
 
 /* -- Report ----------------------------------------------------------- */

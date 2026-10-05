@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz — Daily Current Affairs</title>
+    <title>Daily Quiz — Daily Current Affairs</title>
     <meta name="description"
-        content="Quiz is a separate revision experience. The independent quiz section arrives in Phase 3.">
+        content="Today's Daily Quiz: one question at a time with explanations, a separate experience from reading.">
     <link rel="canonical" href="/quiz/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,27 +29,58 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li><a href="/current-affairs/">Current Affairs</a></li>
-                    <li><a href="/quiz/">Quiz</a></li>
-                    <li><a href="/revision/">Revision</a></li>
+                    <li><a href="/quiz/" aria-current="page">Daily Quiz</a></li>
                 </ul>
             </nav>
         </div>
     </header>
     <main class="site-main" id="main">
-        <h1>Quiz</h1>
+        <h1>Daily Quiz</h1>
+        <p class="card-meta" id="quiz-date-line"></p>
         <div class="ruled stack-md">
-            <p>Quiz is selective and separate from reading — not every article has a quiz. The quiz experience
-                arrives in Phase 3.</p>
-            <p>You can filter articles by date and subject, then test yourself on important facts.</p>
-            <p><a href="/current-affairs/">Back to Current Affairs</a></p>
+            <p>Today's quiz reinforces today's current affairs: one question at a time. Choose an answer, check it,
+                read the explanation, then continue.</p>
         </div>
+
+        <div id="quiz-status" class="quiz-status stack-lg" role="status" aria-live="polite">
+            <div class="demo-row">
+                <span class="spinner" aria-hidden="true"></span>
+                <span class="card-meta">Loading today's quiz&hellip;</span>
+            </div>
+        </div>
+
+        <section id="quiz-session" class="quiz-session stack-lg" hidden aria-label="Today's quiz questions">
+            <div class="page-stage" id="quiz-stage"></div>
+            <div class="quiz-toolbar" id="quiz-toolbar">
+                <button type="button" class="btn btn-primary" id="quiz-check" disabled>Check Answer</button>
+            </div>
+            <div class="quiz-feedback" id="quiz-feedback" role="status" hidden></div>
+            <div class="pager">
+                <button type="button" class="btn btn-secondary" id="quiz-prev">Previous</button>
+                <p class="pager-status" id="quiz-position" role="status">Question 1 of 1</p>
+                <button type="button" class="btn btn-secondary" id="quiz-next">Next</button>
+            </div>
+        </section>
+
+        <section id="quiz-result" class="quiz-result stack-lg" hidden tabindex="-1"
+            aria-labelledby="quiz-result-heading">
+            <h2 id="quiz-result-heading">Quiz Result</h2>
+            <dl class="quiz-result-stats" id="quiz-result-stats"></dl>
+            <div class="quiz-result-actions">
+                <button type="button" class="btn btn-primary" id="quiz-review-toggle" aria-expanded="false"
+                    aria-controls="quiz-review">Review Answers</button>
+                <a class="btn btn-secondary" href="/current-affairs/">Back to Current Affairs</a>
+            </div>
+            <ol class="quiz-review" id="quiz-review" hidden></ol>
+        </section>
+
+        <p class="sr-only" id="quiz-announcer" role="status"></p>
     </main>
     <nav class="mobile-nav" aria-label="Primary mobile">
         <ul>
             <li><a href="/">Home</a></li>
             <li><a href="/current-affairs/">Current Affairs</a></li>
-            <li><a href="/quiz/">Quiz</a></li>
-            <li><a href="/revision/">Revision</a></li>
+            <li><a href="/quiz/" aria-current="page">Daily Quiz</a></li>
         </ul>
     </nav>
     <footer class="site-footer">
@@ -66,14 +97,7 @@
         </div>
     </footer>
 
-    <script>
-        // Quiz listing page - Phase 2 scaffolding
-        // Full quiz generation will arrive in Phase 3 with AI/ML pipeline integration
-        document.addEventListener('DOMContentLoaded', () => {
-            // TODO: In Phase 3, integrate with /api/current-affairs to show which articles have quizzes
-            // and generate MCQ questions from the what_is_important field
-        });
-    </script>
+    <script src="/js/quiz.js" defer></script>
 </body>
 
 </html>

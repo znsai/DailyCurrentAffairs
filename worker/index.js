@@ -9,6 +9,8 @@
  *   GET /api/current-affairs        -> latest articles (?date=YYYY-MM-DD & ?subject= & ?page= & ?limit=)
  *   GET /api/current-affairs/:id    -> one article (article.html reads it; /current-affairs/:id serves the shell)
  *   GET /api/search?q=keyword       -> search titles/summaries
+ *   GET /api/quiz?date=YYYY-MM-DD   -> Daily Quiz questions for one day (V1)
+ *   GET /api/quiz/article?url=...   -> the question linked to one article, if any (V1)
  *
  * DATABASE_URL is provided via Cloudflare secrets/vars — never hardcoded.
  */
@@ -82,6 +84,14 @@ export default {
       return handleSearch(url, env);
     }
 
+    if (pathname === "/api/quiz" && request.method === "GET") {
+      return handleQuizList(url, env);
+    }
+
+    if (pathname === "/api/quiz/article" && request.method === "GET") {
+      return handleQuizForArticle(url, env);
+    }
+
     // Clean article URLs (/current-affairs/15) serve the article shell, and any
     // other /current-affairs/* path falls through to static assets — the assets
     // config routes that prefix to the Worker first (see wrangler.toml).
@@ -143,7 +153,8 @@ async function handleCurrentAffairs(url, env) {
   params.push(limit, offset);
 
   const sqlFull = `
-    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at,
+           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz
     FROM current_affairs
     ${sql}
     ORDER BY date DESC, id DESC
@@ -168,7 +179,8 @@ async function handleArticle(id, env) {
   }
 
   const sql = `
-    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at,
+           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz
     FROM current_affairs
     WHERE id = $1
   `;
@@ -206,7 +218,8 @@ async function handleSearch(url, env) {
   const params = [`%${q}%`];
 
   const sql = `
-    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at,
+           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz
     FROM current_affairs
     WHERE title ILIKE $1
        OR brief_summary ILIKE $1
@@ -221,6 +234,81 @@ async function handleSearch(url, env) {
     return json({ query: q, page, limit, count: rows.length, articles: rows });
   } catch (err) {
     console.error("search query failed:", err);
+    return errorResponse("Database query failed", 500);
+  }
+}
+
+/**
+ * GET /api/quiz?date=YYYY-MM-DD&page=1&limit=50
+ * Daily Quiz questions for one day (V1). `date` defaults to today (UTC) when
+ * omitted; the frontend always sends the student-local date explicitly.
+ * Rows are ordered by id so the session order stays stable.
+ */
+async function handleQuizList(url, env) {
+  if (!env.DATABASE_URL) {
+    return errorResponse("DATABASE_URL is not configured", 500);
+  }
+
+  let date = url.searchParams.get("date");
+  if (!date) {
+    date = new Date().toISOString().slice(0, 10);
+  } else if (!isValidDate(date)) {
+    return errorResponse("Invalid date format, expected YYYY-MM-DD");
+  }
+
+  const { page, limit, offset } = parsePagination(url);
+  const params = [date, limit, offset];
+
+  const sql = `
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
+           option_a, option_b, option_c, option_d, correct_answer, explanation
+    FROM quizzes
+    WHERE date = $1
+    ORDER BY id ASC
+    LIMIT $2 OFFSET $3
+  `;
+
+  try {
+    const rows = await query(env.DATABASE_URL, sql, params);
+    return json({ date, page, limit, count: rows.length, questions: rows });
+  } catch (err) {
+    console.error("quiz query failed:", err);
+    return errorResponse("Database query failed", 500);
+  }
+}
+
+/**
+ * GET /api/quiz/article?url=https%3A%2F%2F...
+ * The question associated with one article's source URL, if any.
+ * Absence is a normal state (not every article has a quiz), so a miss
+ * returns 200 with { question: null } instead of a 404.
+ */
+async function handleQuizForArticle(url, env) {
+  if (!env.DATABASE_URL) {
+    return errorResponse("DATABASE_URL is not configured", 500);
+  }
+
+  const target = (url.searchParams.get("url") ?? "").trim();
+  if (!target) {
+    return errorResponse("Missing required query parameter: url");
+  }
+  if (target.length > 2048) {
+    return errorResponse("url query parameter too long");
+  }
+
+  const sql = `
+    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
+           option_a, option_b, option_c, option_d, correct_answer, explanation
+    FROM quizzes
+    WHERE url = $1
+    LIMIT 1
+  `;
+
+  try {
+    const rows = await query(env.DATABASE_URL, sql, [target]);
+    return json({ question: rows[0] ?? null });
+  } catch (err) {
+    console.error("quiz article lookup failed:", err);
     return errorResponse("Database query failed", 500);
   }
 }
