@@ -17,11 +17,53 @@ The platform must be designed from the beginning for:
 - Defence exams
 - Other Indian government competitive exams
 
-The long-term goal is to build a high-quality current-affairs revision platform, not merely a news-reading website.
+The V1 goal is a focused student learning experience, not a full learning-management or analytics platform.
 
-Future features may include user accounts, bookmarks, revision history, personalized learning, analytics, MCQs at scale, and premium features. Do NOT implement future features unless explicitly requested.
+### V1 learning loop
 
-## 2. Core Architecture
+**Discover → Read → Understand → Recall → Test**
+
+The product should feel like a focused study companion rather than a news-reading website, overloaded coaching website, or generic SaaS dashboard.
+
+The approved V1 UX details are defined in `PROJECT_SPEC_V1_UX.md` and must be followed together with `PROJECT_SPEC.md`.
+
+## 2. V1 Product Scope
+
+V1 primary experiences are:
+
+1. Home
+2. Current Affairs
+3. Current Affairs Article
+4. Daily Quiz
+5. Quiz Result
+
+The primary navigation should remain intentionally small:
+
+```text
+Home
+Current Affairs
+Daily Quiz
+```
+
+Search and profile/account controls may exist as secondary controls when implemented.
+
+Do NOT expose these as V1 product areas unless separately approved:
+
+- Progress Dashboard
+- Revision Dashboard
+- Smart Revision
+- Weak-topic analytics
+- Personalized revision history
+- Mock Tests
+- Advanced gamification
+- Leaderboards
+- Performance analytics
+
+The architecture may remain extensible for these later features, but do not implement them prematurely.
+
+Daily, weekly and monthly Current Affairs/Quiz organization may remain supported where already defined by the existing product requirements. This organizational period is not the same thing as a personalized Revision Dashboard.
+
+## 3. Core Architecture
 
 Planned architecture:
 
@@ -33,7 +75,7 @@ Google Sheets is NOT the application database.
 
 The frontend must NOT connect directly to Neon using database credentials. Database access must happen through a secure API/server layer.
 
-## 3. Technology Direction
+## 4. Technology Direction
 
 Use simple, lightweight, maintainable technologies.
 
@@ -50,15 +92,15 @@ Avoid unnecessary frameworks and dependencies.
 
 The website should be inexpensive to operate and suitable for Cloudflare's free/low-cost infrastructure.
 
-## 4. Product Structure
+## 5. Product Structure
 
-The application has TWO primary sections:
+The application has TWO primary product sections:
 
 ### A. Current Affairs
 
-This is the reading and revision section.
+This is the reading and learning section.
 
-It must support:
+It must support, where implemented by the product requirements:
 
 - Daily current affairs
 - Weekly current affairs
@@ -70,58 +112,43 @@ It must support:
 
 ### B. Quiz
 
-This is the testing and revision section.
+This is the testing section.
 
-It must be separate from the article-reading experience.
+It must remain separate from the article-reading experience.
 
-It must support:
+It can support:
 
 - Daily Quiz
 - Weekly Quiz
 - Monthly Quiz
 - Subject-wise Quiz
 - Exam-wise Quiz
-- Future custom quizzes
 
-A user should be able to finish reading current affairs and then navigate to a relevant quiz separately.
+Future custom quizzes remain future scope.
 
-Do NOT put the quiz directly inside the current-affairs article reading page unless explicitly requested.
+A user should be able to finish reading Current Affairs and then navigate to a relevant quiz separately.
 
-## 5. Current Affairs Organization
+Do NOT force a quiz inside every current-affairs article unless explicitly requested.
 
-Current Affairs should be organized by period:
+## 6. Current Affairs Organization
+
+Current Affairs should be organized by period where supported:
 
 ### Daily
 
 Users can view current affairs for a specific date.
 
-Example:
-
-4 October 2026
-3 October 2026
-2 October 2026
-
 ### Weekly
 
 Users can view a complete week's important current affairs.
-
-Example:
-
-Week 1 — October 2026
-Week 2 — October 2026
 
 ### Monthly
 
 Users can view a complete month's current affairs.
 
-Example:
-
-October 2026
-September 2026
-
 The database and API should make these views possible without duplicating the same article unnecessarily.
 
-## 6. Current Affairs Filters
+## 7. Current Affairs Filters
 
 Current Affairs must support combinations of filters where practical.
 
@@ -181,7 +208,7 @@ Supported exam categories include:
 
 Do NOT assume that every article belongs to only one exam.
 
-## 7. Quiz Organization
+## 8. Quiz Organization
 
 Quiz is a separate product section from Current Affairs.
 
@@ -203,13 +230,9 @@ Quiz should support independent filters for:
 - Exam
 - Difficulty (future-ready)
 
-Example:
-
-Quiz → Monthly → October 2026 → Economy & Banking → Banking
-
 The filtering system should be designed so multiple filters can be combined efficiently.
 
-## 8. Question Model
+## 9. Question Model
 
 Questions must be separate entities from current-affairs articles.
 
@@ -241,7 +264,7 @@ questions
 - subject
 - created_at
 
-Initially, the n8n/AI pipeline may generate one MCQ per article.
+Initially, the n8n/AI pipeline may generate one MCQ per selected article.
 
 The database must NOT assume that an article can only ever have one question. One important article may have multiple questions in the future.
 
@@ -249,7 +272,7 @@ A question belongs to a current-affairs article through `current_affairs_id`.
 
 Do not duplicate the article content into the question record unless there is a clear technical reason.
 
-## 9. Exam Relevance Model
+## 10. Exam Relevance Model
 
 A question or current-affairs article may be relevant to multiple exams.
 
@@ -259,7 +282,7 @@ If exam-specific filtering requires a relational mapping table, use a normalized
 
 The exact implementation should be proposed and approved before adding unnecessary tables.
 
-## 10. Current Affairs Content
+## 11. Current Affairs Content
 
 Current affairs are generated by the existing n8n automation.
 
@@ -280,7 +303,35 @@ The current-affairs article should contain:
 - What is Important
 - Original Source
 
-## 11. Question Content
+### Article UX hierarchy
+
+Where the content is available, the preferred learning hierarchy is:
+
+```text
+Headline
+  ↓
+Date / Category
+  ↓
+Quick Summary
+  ↓
+Why This Matters
+  ↓
+Key Facts
+  ↓
+Exam Perspective
+  ↓
+Important Names / Dates / Numbers
+  ↓
+One-Line Takeaway
+  ↓
+Test Yourself
+```
+
+The article must remain useful even when no quiz exists.
+
+`Test Yourself` is an active-recall interaction. It must not be interpreted as a requirement that every article has a quiz.
+
+## 12. Question Content
 
 Questions should be generated from the current-affairs content and must remain factually grounded in the source article.
 
@@ -296,30 +347,44 @@ A question should contain:
 
 Questions should be useful for government competitive exams and should not be ambiguous or artificially tricky.
 
-## 12. Website Navigation
+Quiz feedback should explain the answer, not merely show a score.
 
-The main product navigation should clearly separate Current Affairs and Quiz.
+## 13. Website Navigation
 
-Conceptually:
+The main product navigation must clearly separate Current Affairs and Quiz while remaining intentionally small for V1.
 
-CURRENT AFFAIRS
-├── Daily
-├── Weekly
-├── Monthly
-└── Archive
+V1 primary navigation:
 
-QUIZ
-├── Daily Quiz
-├── Weekly Quiz
-├── Monthly Quiz
-├── Subject Quiz
-└── Exam Quiz
+```text
+Home
+Current Affairs
+Daily Quiz
+```
 
-The exact visual design can evolve, but the separation between reading and testing should remain clear.
+Do not add these to V1 primary navigation:
 
-## 13. Initial Website Requirements
+- Revision
+- Progress
+- Mock Tests
+
+The exact visual design can evolve, but the separation between reading and testing must remain clear.
+
+## 14. Initial Website Requirements
 
 The first working version should provide:
+
+### Home
+
+- Clear today's study starting point
+- Today's Current Affairs access
+- Continue Reading where supported
+- Today's Quiz access
+
+The Home page must answer:
+
+> What should I study today?
+
+Do not turn Home into a large analytics dashboard.
 
 ### Current Affairs
 
@@ -330,14 +395,13 @@ The first working version should provide:
 - Search
 - Article details
 - Original source link
+- Exam Point / important fact emphasis
 
 ### Quiz foundation
 
-The architecture should support the quiz section and question data model from the beginning, but do not overbuild the complete quiz experience before the basic data flow works.
+The architecture should support the quiz section and question data model from the beginning, but do not overbuild analytics or advanced quiz systems before the basic data flow works.
 
-The user should eventually be able to move from reading Current Affairs to a separate Daily/Weekly/Monthly Quiz.
-
-## 14. Mobile Support
+## 15. Mobile Support
 
 The website must work properly on:
 
@@ -347,7 +411,16 @@ The website must work properly on:
 
 Mobile usability is important because many students will access the platform from phones.
 
-## 15. UI Principles
+For small screens, prioritize:
+
+1. Today's Current Affairs
+2. Article reading
+3. Test Yourself
+4. Daily Quiz
+
+Where mobile paging is used, expose accessible position text such as `Article 2 of 10` or `Question 3 of 10`. Respect `prefers-reduced-motion`.
+
+## 16. UI Principles
 
 Keep the design:
 
@@ -359,11 +432,28 @@ Keep the design:
 - Modern but not distracting
 - Minimal where possible
 
+The core UX loop is:
+
+**Read → Understand → Recall → Test**
+
+The interface should answer these questions in order:
+
+1. What should I study right now?
+2. What happened?
+3. Why does it matter?
+4. What should I remember?
+5. Can I recall it?
+6. Can I answer a question about it?
+
 Avoid excessive animations, heavy libraries, unnecessary dashboards, cluttered layouts, and large assets that slow down the page.
 
-Prioritize readability and revision speed.
+Do not use generic AI-generated SaaS/dashboard patterns simply because they are visually convenient.
 
-## 16. API Design
+The previously reviewed reference HTML is UX inspiration only. Preserve useful interaction patterns such as the clear daily feed, study cards, strong article hierarchy and focused quiz interaction, but do NOT copy its branding, exact colors, typography or visual identity.
+
+The existing visual identity and anti-AI-trope rules in `PROJECT_SPEC.md` remain authoritative.
+
+## 17. API Design
 
 The frontend should communicate with the Cloudflare API.
 
@@ -385,7 +475,7 @@ Do not create APIs that are not needed.
 
 Filtering should happen server-side where appropriate rather than downloading the entire database to the browser.
 
-## 17. Database Design Principles
+## 18. Database Design Principles
 
 Neon is the production data store.
 
@@ -408,7 +498,7 @@ Use a UNIQUE constraint on the original article URL so duplicate articles are no
 
 Do not create tables merely because they might be useful someday. Prefer a minimal normalized design that supports the planned product.
 
-## 18. Security Rules
+## 19. Security Rules
 
 Never expose:
 
@@ -426,7 +516,7 @@ Do not commit `.env` files containing secrets.
 
 Create/update `.gitignore` appropriately.
 
-## 19. Performance Rules
+## 20. Performance Rules
 
 The site should be lightweight.
 
@@ -442,7 +532,7 @@ Prefer:
 
 Do not load thousands of current-affairs articles or questions into the browser unnecessarily.
 
-## 20. Development Method
+## 21. Development Method
 
 IMPORTANT: Work ONE STEP AT A TIME.
 
@@ -459,7 +549,7 @@ Never assume the next step is approved.
 
 Do not implement multiple major architectural layers in one step.
 
-## 21. Before Writing Code
+## 22. Before Writing Code
 
 First inspect:
 
@@ -476,7 +566,7 @@ Do not create duplicate configuration files.
 
 Reuse existing configuration when appropriate.
 
-## 22. Git Rules
+## 23. Git Rules
 
 Use Git properly.
 
@@ -499,7 +589,7 @@ Before modifying the project, check `git status`.
 
 Never discard existing user changes without permission.
 
-## 23. Cloudflare Rules
+## 24. Cloudflare Rules
 
 Cloudflare will eventually host:
 
@@ -516,7 +606,7 @@ Then configure environment variables/secrets.
 
 Then deploy.
 
-## 24. Testing
+## 25. Testing
 
 Every implementation step should be validated.
 
@@ -534,9 +624,19 @@ At minimum:
 - Mobile layout works
 - No secrets are exposed
 
+For UX work, also verify:
+
+- Home immediately communicates today's study action
+- Current Affairs cards remain scannable
+- Article hierarchy supports understanding and recall
+- Test Yourself does not force a quiz where none exists
+- Quiz remains a separate experience
+- V1 does not expose Progress, Revision Dashboard or Mock Tests
+- Accessibility is preserved
+
 Fix errors before proceeding to the next stage.
 
-## 25. Future Features
+## 26. Future Features
 
 These are intentionally postponed unless explicitly requested:
 
@@ -544,6 +644,7 @@ These are intentionally postponed unless explicitly requested:
 - User accounts
 - Saved articles
 - Bookmarks
+- Revision Dashboard
 - Revision history
 - Question attempts
 - Scores and leaderboards
@@ -551,13 +652,14 @@ These are intentionally postponed unless explicitly requested:
 - Weak-topic analysis
 - Difficulty classification
 - Advanced question types
+- Mock Tests
 - Payments
 - Ads
 - Analytics
 
 The architecture should remain extensible enough to support these later without unnecessary complexity now.
 
-## 26. AI Behavior
+## 27. AI Behavior
 
 Act as a senior full-stack architect and developer.
 
@@ -570,8 +672,9 @@ Before making architectural decisions:
 - Prefer Neon-native PostgreSQL features
 - Avoid over-engineering
 - Preserve the separation between Current Affairs and Quiz
-- Design for daily, weekly, and monthly revision from the beginning
+- Design daily, weekly and monthly content organization without confusing it with a personalized Revision Dashboard
 - Design filters as first-class features
+- Follow `PROJECT_SPEC_V1_UX.md` for the approved V1 UX direction
 
 If there are multiple valid approaches, explain the trade-offs briefly and recommend one.
 
@@ -581,7 +684,7 @@ Do not silently change requirements.
 
 If something is unclear, stop and ask.
 
-## 27. Current Development Phase
+## 28. Current Development Phase
 
 We are currently at:
 
@@ -595,11 +698,13 @@ znsai/DailyCurrentAffairs
 
 Neon project has also been created.
 
-The product direction is:
+The approved V1 product direction is:
 
-Current Affairs + Revision + Quiz
+**Current Affairs + Daily Quiz**
 
-with separate Current Affairs and Quiz sections, daily/weekly/monthly organization, and independent filtering.
+with a focused Home experience, separate Current Affairs and Quiz sections, daily/weekly/monthly content organization, and independent filtering.
+
+Progress Dashboard, Revision Dashboard and Mock Tests are explicitly deferred.
 
 Next objective:
 
@@ -607,7 +712,7 @@ Inspect the existing repository and establish the basic local development enviro
 
 Do NOT start implementing the full website yet.
 
-## 28. Golden Rule
+## 29. Golden Rule
 
 BUILD IN SMALL VERIFIED STEPS.
 
