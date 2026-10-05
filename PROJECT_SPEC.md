@@ -988,3 +988,69 @@ For regular readers, it should feel like:
 > **“I can read concise, useful current affairs without being forced into exam quizzes.”**
 
 That balance is central to the product.
+
+
+
+---
+
+## 33. AI-Generated Design Trope Avoidance
+
+The following design tropes are explicitly avoided unless a future product decision intentionally overrides this rule. This section was added after auditing the current UI implementation on the `main` branch.
+
+| # | Design trope to avoid | Current UI | Action |
+|---|---|---|---|
+| 1 | Harsh gradients | Not present | Keep avoided |
+| 2 | Lucide icons | Not present | Keep avoided |
+| 3 | Pure white background | Not present; page uses warm off-white | Keep avoided |
+| 4 | Rainbow coloring | Not present | Keep avoided |
+| 5 | Drop shadows on everything | Not present | Keep avoided |
+| 6 | 3 feature cards in a row | Not present | Keep avoided |
+| 7 | Emojis | Not present in the live UI | Keep avoided |
+| 8 | Liquid glass effect | Not present | Keep avoided |
+| 9 | Em dashes | Not present in the live UI | Keep avoided |
+| 10 | Inter / Geist / Space Grotesk fonts | Not present; Sanchez + system UI fonts are used | Keep avoided |
+| 11 | Colored left stripe | **Present** on notice/exam-point components | **Remove during UI refinement** |
+| 12 | Fake testimonials | Not present | Keep avoided |
+| 13 | Bento grids | Not present | Keep avoided |
+| 14 | Terminal window | Not present | Keep avoided |
+| 15 | “It’s not X, it’s Y” copy style | Not present | Keep avoided |
+| 16 | Checkmark bullets | Not present | Keep avoided |
+| 17 | 3 pricing tiers | Not applicable to this product; not present | Leave out of product UI |
+| 18 | No real product demos | Not applicable to the current study-product experience | Leave out of product UI |
+| 19 | Soft corner radius | Not present; surfaces are intentionally sharp-edged | Keep avoided |
+| 20 | Purple and black color scheme | Not present; palette is indigo, amber, warm paper and charcoal | Keep avoided |
+| 21 | No skeleton loaders | Not present; skeleton/loading primitives already exist | Keep skeleton loaders |
+| 22 | Radial orbs | Not present | Keep avoided |
+| 23 | Dot grids | Not present | Keep avoided |
+| 24 | Sparkle icons | Not present | Keep avoided |
+| 25 | Animated arrows | Not present | Keep avoided |
+| 26 | No Terms of Service page | Not present; Terms page exists | Keep legal page |
+| 27 | No Privacy Policy page | Not present; Privacy Policy page exists | Keep legal page |
+| 28 | Hover animations on everything | Not present; hover behavior is limited and functional | Keep limited |
+| 29 | Neon colors | Not present | Keep avoided |
+| 30 | Basic pastel colors | Not present as the overall visual language; only restrained semantic washes are used | Keep avoided |
+
+### Audit result
+
+**1 of 30 listed tropes is currently present:** #11, colored left stripes.
+
+The existing UI already has several intentional anti-trope decisions that should be preserved:
+
+- Warm off-white paper rather than a pure-white page background.
+- Sharp/square surfaces rather than soft rounded cards.
+- Sanchez typography rather than Inter, Geist or Space Grotesk.
+- No icon-heavy navigation or decorative emoji treatment.
+- No generic SaaS feature-card, pricing, testimonial, bento or terminal patterns.
+- No decorative gradients, orbs, dot grids, neon palette or glassmorphism.
+- Skeleton/loading primitives are already part of the component system.
+- Terms, Privacy Policy, Cookie Policy and Disclaimer pages are part of the product structure.
+
+### UI refinement rule for #11
+
+Remove the colored left-border treatment from `.exam-point` and `.notice`. The visual hierarchy should instead use typography, a top/bottom rule, restrained background treatment, or a labeled stamp without a vertical accent stripe.
+
+Do not replace the stripe with another generic SaaS decoration. The result must remain consistent with the sharp-edged study-notebook identity defined in §19.
+
+### Future design reviews
+
+Before introducing a new UI pattern, check it against all 30 items above. Avoid adding a trope simply because it is common in AI-generated interfaces. Product usefulness, accessibility and the established notebook-study identity take priority over novelty.
