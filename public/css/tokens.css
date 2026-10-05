@@ -91,8 +91,7 @@
   /* Rule offset is only applied inside .ruled zones, never on the page itself. */
   --ruled-rule-offset: 0.68em;
 
-  /* Exam-Point signature (Option A identity) */
-  --exam-rule-width: 5px;
+  /* Exam Point stamp label (Option A identity) */
   --stamp-rotate: -1.2deg;
 
   /* Touch + motion */

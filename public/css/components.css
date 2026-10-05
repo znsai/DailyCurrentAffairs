@@ -113,7 +113,7 @@
 /* Quiz uses the same study-notebook voice: Sanchez question and options.
    Options are borderless radio rows on the ruled sheet — tapping anywhere on
    the row selects it, the native input stays accessible but visually hidden,
-   and the checked row is marked with an ink underline + left rule + bold text
+   and the checked row is marked with an ink underline + bold text
    (never color alone). */
 .quiz-question {
   font-family: var(--font-display);
@@ -173,7 +173,6 @@
 
 .quiz-option-row:has(input:checked) {
   border-bottom: 2px solid var(--color-primary);
-  box-shadow: inset var(--exam-rule-width) 0 0 var(--color-primary);
 }
 
 .quiz-option-row:has(input:checked) .quiz-option-text {
@@ -276,7 +275,6 @@
 .notice {
   border: none;
   border-top: 2px solid var(--color-border-strong);
-  border-left: var(--exam-rule-width) solid var(--color-border-strong);
   border-radius: 0;
   background: transparent;
   padding: 1rem 0.25rem;
@@ -297,22 +295,25 @@
 }
 
 .notice-error {
-  border-left-color: var(--color-danger);
+  border-top-color: var(--color-danger);
 }
 
 .notice-info {
-  border-left-color: var(--color-primary);
+  border-top-color: var(--color-primary);
 }
 
 /* Exam Point panel — key product pattern (§11). Text label, not color alone.
-   Option A signature: amber left rule + stamp-like label + archival paper wash. */
+   Annotation signature: an amber rule above and below the block (a bracketed
+   study-note annotation), the stamp-like label, and an archival paper wash.
+   No vertical accent stripe — spec §33, trope #11. */
 .exam-point {
   position: relative;
-  border: 1px solid var(--color-accent-border);
-  border-left: var(--exam-rule-width) solid var(--color-accent-border);
+  border: none;
+  border-top: 2px solid var(--color-accent-border);
+  border-bottom: 2px solid var(--color-accent-border);
   background: var(--color-accent-bg);
-  border-radius: var(--radius-md);
-  padding: 0.9rem 1rem 0.9rem 1.1rem;
+  border-radius: 0;
+  padding: 0.9rem 1rem;
   color: var(--color-text);
 }
 
