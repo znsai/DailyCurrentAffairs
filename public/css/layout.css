@@ -751,6 +751,14 @@
   opacity: 0.9;
 }
 
+.brand-logo {
+  display: block;
+  height: 2.25rem;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
 /* Desktop / tablet primary nav */
 .site-nav ul {
   list-style: none;

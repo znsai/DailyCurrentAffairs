@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" role="img" aria-labelledby="logo-title logo-description">
+  <title id="logo-title">topcurrentaffairs.in</title>
+  <desc id="logo-description">An open navy book with an orange arrow that lifts off in a looping flight, above the topcurrentaffairs.in wordmark. Daily current affairs, with a focus on learning and progress.</desc>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;800&amp;display=swap');
+    .logo-arrow {
+      transform-box: view-box;
+      transform-origin: 500px 219px;
+      animation: arrow-flight 4.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    }
+    .logo-arrow-trail {
+      opacity: 0;
+      animation: arrow-trail 4.8s ease-in-out infinite;
+    }
+    @keyframes arrow-flight {
+      0%, 18%, 88%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+      }
+      27% {
+        transform: translate(0, 7px) rotate(-3deg);
+        opacity: 1;
+      }
+      43% {
+        transform: translate(8px, -35px) rotate(5deg);
+        opacity: 1;
+      }
+      57% {
+        transform: translate(30px, -70px) rotate(9deg);
+        opacity: 0;
+      }
+      63% {
+        transform: translate(0, 20px) rotate(0deg);
+        opacity: 0;
+      }
+      77% {
+        transform: translate(0, -4px) rotate(0deg);
+        opacity: 1;
+      }
+    }
+    @keyframes arrow-trail {
+      0%, 27%, 57%, 100% {
+        opacity: 0;
+      }
+      37%, 44% {
+        opacity: 0.55;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .logo-arrow, .logo-arrow-trail {
+        animation: none;
+      }
+    }
+  </style>
+
+  <!-- The page silhouettes leave a clear central channel for the bookmark. -->
+  <g fill="#153e43">
+    <path d="M390 151C428 149 463 161 485 179V252C458 233 427 224 390 226V151Z" />
+    <path d="M610 151C572 149 537 161 515 179V252C542 233 573 224 610 226V151Z" />
+    <path d="M370 173H379V240C420 235 459 245 489 265H511C541 245 580 235 621 240V173H630V254C587 249 548 258 516 278H484C452 258 413 249 370 254V173Z" />
+  </g>
+
+  <!-- One bookmark doubles as an upward arrow: study meets staying ahead. -->
+  <g class="logo-arrow">
+    <g class="logo-arrow-trail" fill="none" stroke="#e57936" stroke-width="3" stroke-linecap="round">
+      <path d="M493 240V260" />
+      <path d="M507 240V252" />
+    </g>
+    <path fill="#e57936" d="M500 90L541 133H516V231L500 219L484 231V133H459L500 90Z" />
+  </g>
+
+  <text x="500" y="365" text-anchor="middle" fill="#153e43" font-family="'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="61" font-weight="800" letter-spacing="-2.8">
+    top<tspan fill="#e57936">current</tspan>affairs<tspan font-weight="500" fill="#153e43">.in</tspan>
+  </text>
+
+  <text x="503" y="410" text-anchor="middle" fill="#647779" font-family="'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600" letter-spacing="5.5">
+    DAILY CURRENT AFFAIRS
+  </text>
+</svg>
