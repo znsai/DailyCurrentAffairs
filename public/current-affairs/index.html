@@ -271,7 +271,7 @@
 
             emptyState.style.display = 'none';
             articleList.innerHTML = articles.map((article) => {
-                const id = encodeURIComponent(article.id || '');
+                const id = encodeURIComponent(article.public_id || '');
                 const subject = escapeHtml(article.subject || 'Current Affairs');
                 const date = escapeHtml(formatCardDate(article.date));
                 const title = escapeHtml(article.title || 'Untitled');
