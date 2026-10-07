@@ -195,7 +195,7 @@
             subject.textContent = article.subject || 'Current Affairs';
             const title = document.createElement('h3');
             const link = document.createElement('a');
-            link.href = `/current-affairs/${encodeURIComponent(article.id)}`;
+            link.href = `/current-affairs/${encodeURIComponent(article.public_id)}`;
             link.textContent = article.title || 'Untitled article';
             title.append(link);
             content.append(subject, title);
