@@ -7,7 +7,7 @@
  * Endpoints (minimal set per AI_RULES.md section 8):
  *   GET /api/health                 -> liveness check
  *   GET /api/current-affairs        -> current-day articles by default (?date=YYYY-MM-DD & ?subject= & ?page= & ?limit=)
- *   GET /api/current-affairs/:id    -> one article (article.html reads it; /current-affairs/:id serves the shell)
+ *   GET /api/current-affairs/:ref   -> one article by opaque public reference (article.html reads it)
  *   GET /api/search?q=keyword       -> search titles/summaries
  *   GET /api/quiz?date=YYYY-MM-DD   -> Daily Quiz questions for one day (V1)
  *   GET /api/quiz/article?url=...   -> the question linked to one article, if any (V1)
@@ -53,7 +53,6 @@ function appToday() {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-/** Validate YYYY-MM-DD */
 // Public article references are opaque, non-sequential identifiers.
 // They are reversible only by the Worker; the database primary key stays internal.
 const ARTICLE_REF_PREFIX = "ca-";
@@ -91,6 +90,7 @@ function articleIdFromRef(ref) {
   return id >= 1 ? id : null;
 }
 
+/** Validate YYYY-MM-DD */
 function isValidDate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 }
@@ -158,7 +158,7 @@ export default {
       return handleArticleRating(request, env);
     }
 
-    // Clean article URLs (/current-affairs/15) serve the article shell, and any
+    // Clean article URLs (/current-affairs/ca-1Ok3oB) serve the article shell, and any
     // other /current-affairs/* path falls through to static assets — the assets
     // config routes that prefix to the Worker first (see wrangler.toml).
     if (request.method === "GET" || request.method === "HEAD") {
@@ -240,7 +240,10 @@ async function handleCurrentAffairs(url, env) {
     return json({
       page, limit, count: rows.length,
       ...(dateScoped ? { total } : {}),
-      articles: rows,
+      articles: rows.map(({ id, ...article }) => ({
+        ...article,
+        public_id: articleRefFromId(id),
+      })),
     });
   } catch (err) {
     console.error("current-affairs query failed:", err);
@@ -256,6 +259,11 @@ async function handleArticle(ref, env) {
     return errorResponse("DATABASE_URL is not configured", 500);
   }
 
+  const id = articleIdFromRef(ref);
+  if (!id) {
+    return errorResponse("Invalid article reference", 400);
+  }
+
   const sql = `
     SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at,
            EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz
@@ -268,7 +276,8 @@ async function handleArticle(ref, env) {
     if (rows.length === 0) {
       return errorResponse("Article not found", 404);
     }
-    const { id: internalId, ...article } = rows[0];\n    return json({ ...article, public_id: articleRefFromId(internalId) });
+    const { id: internalId, ...article } = rows[0];
+    return json({ ...article, public_id: articleRefFromId(internalId) });
   } catch (err) {
     console.error("article query failed:", err);
     return errorResponse("Database query failed", 500);
