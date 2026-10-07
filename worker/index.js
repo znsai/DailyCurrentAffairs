@@ -7,7 +7,7 @@
  * Endpoints (minimal set per AI_RULES.md section 8):
  *   GET /api/health                 -> liveness check
  *   GET /api/current-affairs        -> current-day articles by default (?date=YYYY-MM-DD & ?subject= & ?page= & ?limit=)
- *   GET /api/current-affairs/:id    -> one article (article.html reads it; /current-affairs/:id serves the shell)
+ *   GET /api/current-affairs/:ref   -> one article by opaque public reference (article.html reads it)
  *   GET /api/search?q=keyword       -> search titles/summaries
  *   GET /api/quiz?date=YYYY-MM-DD   -> Daily Quiz questions for one day (V1)
  *   GET /api/quiz/article?url=...   -> the question linked to one article, if any (V1)
@@ -53,6 +53,43 @@ function appToday() {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+// Public article references are opaque, non-sequential identifiers.
+// They are reversible only by the Worker; the database primary key stays internal.
+const ARTICLE_REF_PREFIX = "ca-";
+const ARTICLE_REF_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ARTICLE_REF_A = 1103515245;
+const ARTICLE_REF_C = 12345;
+const ARTICLE_REF_A_INV = 4005161829;
+
+function articleRefFromId(id) {
+  const value = Number(id);
+  if (!Number.isInteger(value) || value < 1 || value > 0xffffffff) return null;
+  let n = (Math.imul(value, ARTICLE_REF_A) + ARTICLE_REF_C) >>> 0;
+  let encoded = "";
+  do {
+    encoded = ARTICLE_REF_ALPHABET[n % ARTICLE_REF_ALPHABET.length] + encoded;
+    n = Math.floor(n / ARTICLE_REF_ALPHABET.length);
+  } while (n > 0);
+  return ARTICLE_REF_PREFIX + encoded;
+}
+
+function articleIdFromRef(ref) {
+  if (typeof ref !== "string" || !ref.startsWith(ARTICLE_REF_PREFIX)) return null;
+  const encoded = ref.slice(ARTICLE_REF_PREFIX.length);
+  if (!encoded || encoded.length > 8) return null;
+
+  let n = 0;
+  for (const char of encoded) {
+    const digit = ARTICLE_REF_ALPHABET.indexOf(char);
+    if (digit < 0) return null;
+    n = n * ARTICLE_REF_ALPHABET.length + digit;
+    if (n > 0xffffffff) return null;
+  }
+
+  const id = Math.imul((n - ARTICLE_REF_C) >>> 0, ARTICLE_REF_A_INV) >>> 0;
+  return id >= 1 ? id : null;
+}
+
 /** Validate YYYY-MM-DD */
 function isValidDate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
@@ -96,9 +133,9 @@ export default {
       return handleCurrentAffairs(url, env);
     }
 
-    const articleIdMatch = pathname.match(/^\/api\/current-affairs\/(\d+)\/?$/);
+    const articleIdMatch = pathname.match(/^\/api\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
     if (articleIdMatch && request.method === "GET") {
-      return handleArticle(Number(articleIdMatch[1]), env);
+      return handleArticle(articleIdMatch[1], env);
     }
 
     if (pathname === "/api/search" && request.method === "GET") {
@@ -121,11 +158,11 @@ export default {
       return handleArticleRating(request, env);
     }
 
-    // Clean article URLs (/current-affairs/15) serve the article shell, and any
+    // Clean article URLs (/current-affairs/ca-1Ok3oB) serve the article shell, and any
     // other /current-affairs/* path falls through to static assets — the assets
     // config routes that prefix to the Worker first (see wrangler.toml).
     if (request.method === "GET" || request.method === "HEAD") {
-      const articleSlug = pathname.match(/^\/current-affairs\/(\d+)\/?$/);
+      const articleSlug = pathname.match(/^\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
       if (articleSlug) {
         return env.ASSETS.fetch(new Request(new URL("/current-affairs/article.html", url)));
       }
@@ -203,7 +240,10 @@ async function handleCurrentAffairs(url, env) {
     return json({
       page, limit, count: rows.length,
       ...(dateScoped ? { total } : {}),
-      articles: rows,
+      articles: rows.map(({ id, ...article }) => ({
+        ...article,
+        public_id: articleRefFromId(id),
+      })),
     });
   } catch (err) {
     console.error("current-affairs query failed:", err);
@@ -212,11 +252,16 @@ async function handleCurrentAffairs(url, env) {
 }
 
 /**
- * GET /api/current-affairs/:id -> one article as a raw row (article.html renders it directly).
+ * GET /api/current-affairs/:ref -> one article by its opaque public reference.
  */
-async function handleArticle(id, env) {
+async function handleArticle(ref, env) {
   if (!env.DATABASE_URL) {
     return errorResponse("DATABASE_URL is not configured", 500);
+  }
+
+  const id = articleIdFromRef(ref);
+  if (!id) {
+    return errorResponse("Invalid article reference", 400);
   }
 
   const sql = `
@@ -231,7 +276,8 @@ async function handleArticle(id, env) {
     if (rows.length === 0) {
       return errorResponse("Article not found", 404);
     }
-    return json(rows[0]);
+    const { id: internalId, ...article } = rows[0];
+    return json({ ...article, public_id: articleRefFromId(internalId) });
   } catch (err) {
     console.error("article query failed:", err);
     return errorResponse("Database query failed", 500);
@@ -272,7 +318,7 @@ async function handleSearch(url, env) {
 
   try {
     const rows = await query(env.DATABASE_URL, sql, params);
-    return json({ query: q, page, limit, count: rows.length, articles: rows });
+    return json({ query: q, page, limit, count: rows.length, articles: rows.map(({ id, ...article }) => ({ ...article, public_id: articleRefFromId(id) })) });
   } catch (err) {
     console.error("search query failed:", err);
     return errorResponse("Database query failed", 500);
@@ -420,11 +466,15 @@ async function handleArchive(url, env) {
 }
 
 /**
- * POST /api/article-rating  { articleId: number, anonymousId: UUID, rating: 1..5 }
+ * POST /api/article-rating  { articleId: "ca-..." | number, anonymousId: UUID, rating: 1..5 }
  * Anonymous editorial-quality feedback (PROJECT_SPEC §11). The browser sends
  * a randomly generated UUID, not an account, email, or IP-based identity.
  * The unique database constraint makes one rating per browser identity and
  * article enforceable even when the browser's localStorage is cleared.
+ *
+ * The public article reference is still the routing form used in URLs, but the
+ * database stores the internal numeric article id. This endpoint accepts either
+ * value so older clients and the newer opaque-ref flow both work.
  */
 function isUuid(value) {
   return typeof value === "string"
@@ -443,12 +493,15 @@ async function handleArticleRating(request, env) {
     return errorResponse("Invalid JSON body", 400);
   }
 
-  const articleId = Number(body?.articleId);
+  const articleRefOrId = body?.articleRef ?? body?.articleId;
+  const articleId = typeof articleRefOrId === "string"
+    ? (articleIdFromRef(articleRefOrId) ?? Number(articleRefOrId))
+    : Number(articleRefOrId);
   const anonymousId = body?.anonymousId;
   const rating = Number(body?.rating);
 
   if (!Number.isInteger(articleId) || articleId < 1) {
-    return errorResponse("articleId must be a positive integer", 400);
+    return errorResponse("articleId must be a valid article reference or numeric id", 400);
   }
   if (!isUuid(anonymousId)) {
     return errorResponse("anonymousId must be a UUID", 400);
