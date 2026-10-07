@@ -205,7 +205,7 @@
 
             // Anonymous feedback (PROJECT_SPEC §11): available once the article
             // is loaded, since the rating is tied to its id.
-            initArticleRating(data.id);
+            initArticleRating(data.public_id);
         }
 
         // Test Yourself: look up the question associated with this article's
@@ -266,11 +266,11 @@
             }
         }
 
-        function initArticleRating(articleId) {
+        function initArticleRating(articleRef) {
             const section = document.getElementById('article-rating');
-            if (!section || !Number.isInteger(Number(articleId))) return;
+            if (!section || !articleRef) return;
             section.hidden = false;
-            const id = Number(articleId);
+            const id = articleRef;
 
             const stars = Array.from(section.querySelectorAll('.article-rating-star'));
             const hint = document.getElementById('article-rating-hint');
@@ -332,7 +332,7 @@
                     const response = await fetch('/api/article-rating', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ articleId: id, rating: selected }),
+                        body: JSON.stringify({ articleRef: id, rating: selected }),
                     });
                     if (!response.ok) throw new Error('Rating request failed');
                     writeRatedId(id);
@@ -347,7 +347,7 @@
             });
         }
 
-        // Initialize: extract article ID from URL or use default
+        // Initialize: extract the opaque article reference from the URL or use default
         document.addEventListener('DOMContentLoaded', () => {            // Try to get article ID from URL path like /current-affairs/[id]
             const path = window.location.pathname;
             const match = path.match(/\/current-affairs\/([^/]+)/);
@@ -355,7 +355,7 @@
 
             // If "latest", fetch the most recent article
             if (articleId === 'latest') {
-                loadArticle(1); // Use ID 1 as default/first article
+                loadArticle("ca-1cGhW6"); // Opaque reference for the first article
             } else {
                 loadArticle(articleId);
             }
