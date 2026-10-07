@@ -340,6 +340,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .home-search {
@@ -357,7 +358,7 @@
   border: 1px solid var(--color-border-strong);
   border-right: 0;
   border-radius: 4px 0 0 4px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
@@ -371,9 +372,10 @@
 }
 
 .home-search input::placeholder {
-  color: #94a3b8;
+  color: var(--color-muted);
   font-family: var(--font-sans);
   font-size: 0.8125rem;
+  opacity: 0.75;
 }
 
 .home-search button {
@@ -398,6 +400,59 @@
 .home-search button:hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.theme-toggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: block;
+}
+
+.theme-toggle .icon-sun {
+  display: none;
+}
+
+.theme-toggle .icon-moon {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-sun {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon {
+    display: none;
+  }
 }
 
 /* Day-scoped full-list CTA + daily-view day heading (V1 / Phase 4). */
@@ -858,6 +913,28 @@
   .logo-arrow,
   .logo-arrow-trail {
     animation: none !important;
+  }
+}
+
+/* Dark mode SVG logo adaptivity */
+:root[data-theme="dark"] .brand-logo g[fill="#153e43"],
+:root[data-theme="dark"] .brand-logo text[fill="#153e43"],
+:root[data-theme="dark"] .brand-logo tspan[fill="#153e43"] {
+  fill: var(--color-text);
+}
+
+:root[data-theme="dark"] .brand-logo text[fill="#647779"] {
+  fill: var(--color-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-logo g[fill="#153e43"],
+  :root:not([data-theme="light"]) .brand-logo text[fill="#153e43"],
+  :root:not([data-theme="light"]) .brand-logo tspan[fill="#153e43"] {
+    fill: var(--color-text);
+  }
+  :root:not([data-theme="light"]) .brand-logo text[fill="#647779"] {
+    fill: var(--color-muted);
   }
 }
 
