@@ -406,9 +406,23 @@ check(
   'worker: rating insert is missing the article_ratings write'
 );
 check(
-  /rating BETWEEN 1 AND 5/.test(readFileSync(join('db', 'migrations', '002_create_article_ratings.sql'), 'utf8')),
+  /isUuid\(anonymousId\)/.test(workerSource) &&
+    /ON CONFLICT \(article_id, anonymous_id\) DO NOTHING/.test(workerSource),
+  'worker: validates anonymous UUID and dedupes conflicts server-side',
+  'worker: rating lacks UUID validation or database conflict deduplication'
+);
+const ratingMigration = readFileSync(join('db', 'migrations', '002_create_article_ratings.sql'), 'utf8');
+check(
+  /rating BETWEEN 1 AND 5/.test(ratingMigration),
   'migration 002: rating constrained to 1-5',
   'migration 002: rating CHECK constraint missing'
+);
+check(
+  /article_id\s+BIGINT NOT NULL REFERENCES public\.current_affairs\(id\) ON DELETE CASCADE/.test(ratingMigration) &&
+    /anonymous_id\s+UUID NOT NULL/.test(ratingMigration) &&
+    /UNIQUE \(article_id, anonymous_id\)/.test(ratingMigration),
+  'migration 002: enforces article ownership and one anonymous rating per article',
+  'migration 002: foreign key, UUID identity, or unique rating constraint missing'
 );
 const articleSource = readFileSync(join('public', 'current-affairs', 'article.html'), 'utf8');
 check(
@@ -422,9 +436,11 @@ check(
   'article: rating has no client-side dedupe (accidental repeat submissions)'
 );
 check(
-  /body: JSON\.stringify\(\{ articleId: id, rating: selected \}\)/.test(articleSource),
-  'article: rating posts articleId + rating only',
-  'article: rating payload is not the minimal { articleId, rating }'
+  /ANONYMOUS_ID_KEY = 'dca-anonymous-id'/.test(articleSource) &&
+    /crypto\.randomUUID\(\)/.test(articleSource) &&
+    /anonymousId: getAnonymousId\(\)/.test(articleSource),
+  'article: rating submits a browser-scoped anonymous UUID',
+  'article: rating does not send a persistent anonymous UUID'
 );
 /* §11 is anonymous: the rating form must not collect identity. The word
    "account"/"email" in prose ("no account or PII") is fine; an input that

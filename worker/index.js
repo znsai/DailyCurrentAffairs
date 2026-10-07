@@ -78,7 +78,7 @@ export default {
       return new Response(null, {
         headers: {
           "access-control-allow-origin": "*",
-          "access-control-allow-methods": "GET, OPTIONS",
+          "access-control-allow-methods": "GET, POST, OPTIONS",
           "access-control-allow-headers": "content-type",
         },
       });
@@ -420,13 +420,17 @@ async function handleArchive(url, env) {
 }
 
 /**
- * POST /api/article-rating  { articleId: number, rating: 1..5 }
- * Anonymous editorial-quality feedback (PROJECT_SPEC §11). No accounts, no
- * PII — the body carries only the article id and a 1-5 score. Duplicate
- * guarding is client-side (localStorage) by design; this endpoint stays
- * permissive so a cleared store can still submit. The response is always a
- * fixed shape so the widget never leaks whether a row was stored.
+ * POST /api/article-rating  { articleId: number, anonymousId: UUID, rating: 1..5 }
+ * Anonymous editorial-quality feedback (PROJECT_SPEC §11). The browser sends
+ * a randomly generated UUID, not an account, email, or IP-based identity.
+ * The unique database constraint makes one rating per browser identity and
+ * article enforceable even when the browser's localStorage is cleared.
  */
+function isUuid(value) {
+  return typeof value === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 async function handleArticleRating(request, env) {
   if (!env.DATABASE_URL) {
     return errorResponse("DATABASE_URL is not configured", 500);
@@ -440,29 +444,35 @@ async function handleArticleRating(request, env) {
   }
 
   const articleId = Number(body?.articleId);
+  const anonymousId = body?.anonymousId;
   const rating = Number(body?.rating);
 
   if (!Number.isInteger(articleId) || articleId < 1) {
     return errorResponse("articleId must be a positive integer", 400);
+  }
+  if (!isUuid(anonymousId)) {
+    return errorResponse("anonymousId must be a UUID", 400);
   }
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return errorResponse("rating must be an integer between 1 and 5", 400);
   }
 
   try {
-    await query(
+    const rows = await query(
       env.DATABASE_URL,
-      `INSERT INTO article_ratings (article_id, rating) VALUES ($1, $2)`,
-      [articleId, rating]
+      `INSERT INTO article_ratings (article_id, anonymous_id, rating)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (article_id, anonymous_id) DO NOTHING
+       RETURNING id`,
+      [articleId, anonymousId, rating]
     );
+    return json({ ok: true, stored: rows.length === 1 });
   } catch (err) {
-    // The table may not be provisioned yet, or the article may not exist.
-    // Feedback is optional: never break the article page over it.
+    // Ratings remain optional until the separately-reviewed migration is
+    // applied. Do not let unavailable feedback break article study.
     console.error("article rating insert failed:", err);
-    return json({ ok: true, stored: false });
+    return errorResponse("Ratings are not available", 503);
   }
-
-  return json({ ok: true, stored: true });
 }
 
 /**
