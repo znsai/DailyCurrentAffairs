@@ -982,17 +982,10 @@
   }
 }
 
-/* <640px: header nav becomes compact horizontal scroll chips */
+/* <640px: hide header nav (bottom mobile-nav is active), search goes full width */
 @media (max-width: 39.9375rem) {
   .site-nav {
-    width: 100%;
-  }
-
-  .site-nav ul {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    display: none;
   }
 
   .archive-layout {
