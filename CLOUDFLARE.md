@@ -34,8 +34,12 @@ npm run dev                      # wrangler dev on http://localhost:8787
 | Method | Path | Query params |
 |--------|------|--------------|
 | GET | `/api/health` | — |
-| GET | `/api/current-affairs` | `date=YYYY-MM-DD`, `subject`, `page`, `limit` (max 50) |
+| GET | `/api/current-affairs` | `date=YYYY-MM-DD`, `subject`, `page`, `limit` (ceiling 200; day-scoped responses include exact `total`) |
 | GET | `/api/search` | `q` (required), `page`, `limit` |
+| GET | `/api/current-affairs/:id` | path id |
+| GET | `/api/quiz` | `date=YYYY-MM-DD`, `page`, `limit` |
+| GET | `/api/quiz/article` | `url` (encoded source URL) |
+| GET | `/api/archive` | `month=YYYY-MM` (date/count metadata only) |
 
 ## Build configuration (if the dashboard asks)
 

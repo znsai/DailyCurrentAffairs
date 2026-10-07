@@ -6,17 +6,27 @@
  *
  * Endpoints (minimal set per AI_RULES.md section 8):
  *   GET /api/health                 -> liveness check
- *   GET /api/current-affairs        -> latest articles (?date=YYYY-MM-DD & ?subject= & ?page= & ?limit=)
+ *   GET /api/current-affairs        -> current-day articles by default (?date=YYYY-MM-DD & ?subject= & ?page= & ?limit=)
  *   GET /api/current-affairs/:id    -> one article (article.html reads it; /current-affairs/:id serves the shell)
  *   GET /api/search?q=keyword       -> search titles/summaries
  *   GET /api/quiz?date=YYYY-MM-DD   -> Daily Quiz questions for one day (V1)
  *   GET /api/quiz/article?url=...   -> the question linked to one article, if any (V1)
+ *   GET /api/archive?month=YYYY-MM  -> month metadata: dates with article counts (Phase 4)
+ *   POST /api/article-rating        -> anonymous 1-5 article feedback (PROJECT_SPEC §11)
+ *
+ * Canonical app date: Asia/Kolkata. The frontend always sends explicit local
+ * dates/months; server fallbacks use appToday() so behavior never depends on
+ * UTC versus browser date.
  *
  * DATABASE_URL is provided via Cloudflare secrets/vars — never hardcoded.
  */
 
 const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
+// API ceiling only — UI callers pin small limits (home 10, daily 20, search 20, quiz 50).
+const MAX_LIMIT = 200;
+// Student-facing Daily Quiz session size (PROJECT_SPEC §10): the backend may
+// hold many questions per day, but the quiz the student takes is 10 random ones.
+const QUIZ_SESSION_SIZE = 10;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -30,6 +40,17 @@ function json(data, status = 200) {
 
 function errorResponse(message, status = 400) {
   return json({ error: message }, status);
+}
+
+/** Canonical application date (Asia/Kolkata) for server-side defaults.
+ *  The frontend always sends explicit local dates; this is a fallback only,
+ *  so normal behavior never depends on UTC versus browser date. */
+function appToday() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((part) => part.type === type).value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 /** Validate YYYY-MM-DD */
@@ -92,6 +113,14 @@ export default {
       return handleQuizForArticle(url, env);
     }
 
+    if (pathname === "/api/archive" && request.method === "GET") {
+      return handleArchive(url, env);
+    }
+
+    if (pathname === "/api/article-rating" && request.method === "POST") {
+      return handleArticleRating(request, env);
+    }
+
     // Clean article URLs (/current-affairs/15) serve the article shell, and any
     // other /current-affairs/* path falls through to static assets — the assets
     // config routes that prefix to the Worker first (see wrangler.toml).
@@ -109,19 +138,17 @@ export default {
   },
 };
 
-/** Build filter conditions from optional date + subject params */
+/** Build filter conditions from the app-day default + optional subject param */
 function buildCurrentAffairsWhere(url) {
   const conditions = [];
   const params = [];
 
-  const date = url.searchParams.get("date");
-  if (date) {
-    if (!isValidDate(date)) {
-      return { error: "Invalid date format, expected YYYY-MM-DD", sql: "", params: [] };
-    }
-    params.push(date);
-    conditions.push(`date = $${params.length}`);
+  const date = url.searchParams.get("date") || appToday();
+  if (!isValidDate(date)) {
+    return { error: "Invalid date format, expected YYYY-MM-DD", sql: "", params: [] };
   }
+  params.push(date);
+  conditions.push(`date = $${params.length}`);
 
   const subject = url.searchParams.get("subject");
   if (subject) {
@@ -136,6 +163,8 @@ function buildCurrentAffairsWhere(url) {
 
 /**
  * GET /api/current-affairs?date=YYYY-MM-DD&subject=Economy&page=1&limit=20
+ * `date` defaults to the canonical app date (Asia/Kolkata); frontend callers
+ * send it explicitly.
  * Server-side filtering + pagination (AI_RULES.md section 10).
  */
 async function handleCurrentAffairs(url, env) {
@@ -152,9 +181,12 @@ async function handleCurrentAffairs(url, env) {
 
   params.push(limit, offset);
 
+  // Day-scoped requests get an exact total (bounded to one day's index scan).
+  const dateScoped = (url.searchParams.get("date") ?? "") !== "";
+
   const sqlFull = `
     SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at,
-           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz
+           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz${dateScoped ? ", COUNT(*) OVER() AS total" : ""}
     FROM current_affairs
     ${sql}
     ORDER BY date DESC, id DESC
@@ -163,7 +195,16 @@ async function handleCurrentAffairs(url, env) {
 
   try {
     const rows = await query(env.DATABASE_URL, sqlFull, params);
-    return json({ page, limit, count: rows.length, articles: rows });
+    let total;
+    if (dateScoped) {
+      total = rows.length > 0 ? Number(rows[0].total) : 0;
+      for (const row of rows) delete row.total;
+    }
+    return json({
+      page, limit, count: rows.length,
+      ...(dateScoped ? { total } : {}),
+      articles: rows,
+    });
   } catch (err) {
     console.error("current-affairs query failed:", err);
     return errorResponse("Database query failed", 500);
@@ -239,10 +280,15 @@ async function handleSearch(url, env) {
 }
 
 /**
- * GET /api/quiz?date=YYYY-MM-DD&page=1&limit=50
- * Daily Quiz questions for one day (V1). `date` defaults to today (UTC) when
- * omitted; the frontend always sends the student-local date explicitly.
- * Rows are ordered by id so the session order stays stable.
+ * GET /api/quiz?date=YYYY-MM-DD&limit=10&session=1
+ * Daily Quiz questions for one day (V1). `date` defaults to the canonical app
+ * date (Asia/Kolkata) when omitted; the frontend always sends it explicitly.
+ *
+ * `session=1` selects the student-facing Daily Quiz session: at most 10
+ * questions, chosen at random for that day (PROJECT_SPEC §10). Randomness is
+ * done in the database with ORDER BY random() so the Worker never fetches
+ * rows it will discard, and the same fixed first 10 are never repeated.
+ * Without `session=1` the endpoint stays a bounded, id-ordered list.
  */
 async function handleQuizList(url, env) {
   if (!env.DATABASE_URL) {
@@ -251,22 +297,37 @@ async function handleQuizList(url, env) {
 
   let date = url.searchParams.get("date");
   if (!date) {
-    date = new Date().toISOString().slice(0, 10);
+    date = appToday();
   } else if (!isValidDate(date)) {
     return errorResponse("Invalid date format, expected YYYY-MM-DD");
   }
 
+  const isSession = url.searchParams.get("session") === "1";
   const { page, limit, offset } = parsePagination(url);
-  const params = [date, limit, offset];
+  const params = [date];
 
-  const sql = `
-    SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
-           option_a, option_b, option_c, option_d, correct_answer, explanation
-    FROM quizzes
-    WHERE date = $1
-    ORDER BY id ASC
-    LIMIT $2 OFFSET $3
-  `;
+  let sql;
+  if (isSession) {
+    // One query, no offset: the database picks the session.
+    sql = `
+      SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
+             option_a, option_b, option_c, option_d, correct_answer, explanation
+      FROM quizzes
+      WHERE date = $1
+      ORDER BY random()
+      LIMIT ${QUIZ_SESSION_SIZE}
+    `;
+  } else {
+    params.push(limit, offset);
+    sql = `
+      SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
+             option_a, option_b, option_c, option_d, correct_answer, explanation
+      FROM quizzes
+      WHERE date = $1
+      ORDER BY id ASC
+      LIMIT $2 OFFSET $3
+    `;
+  }
 
   try {
     const rows = await query(env.DATABASE_URL, sql, params);
@@ -311,6 +372,97 @@ async function handleQuizForArticle(url, env) {
     console.error("quiz article lookup failed:", err);
     return errorResponse("Database query failed", 500);
   }
+}
+
+/**
+ * GET /api/archive?month=YYYY-MM
+ * Month metadata for the Archive calendar: dates with article counts only.
+ * Never returns articles. `month` defaults to the canonical app month
+ * (Asia/Kolkata) when omitted; the frontend always sends it explicitly.
+ */
+async function handleArchive(url, env) {
+  if (!env.DATABASE_URL) {
+    return errorResponse("DATABASE_URL is not configured", 500);
+  }
+
+  let month = url.searchParams.get("month");
+  if (!month) {
+    month = appToday().slice(0, 7);
+  } else if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    return errorResponse("Invalid month format, expected YYYY-MM");
+  }
+
+  const monthNum = Number(month.slice(5, 7));
+  const yearNum = Number(month.slice(0, 4));
+  const nextMonth = monthNum === 12
+    ? `${yearNum + 1}-01`
+    : `${month.slice(0, 5)}${String(monthNum + 1).padStart(2, "0")}`;
+  const params = [`${month}-01`, `${nextMonth}-01`];
+
+  const sql = `
+    SELECT to_char(date, 'YYYY-MM-DD') AS date, COUNT(*) AS count
+    FROM current_affairs
+    WHERE date >= $1 AND date < $2
+    GROUP BY date
+    ORDER BY date ASC
+  `;
+
+  try {
+    const rows = await query(env.DATABASE_URL, sql, params);
+    return json({
+      month,
+      days: rows.map((row) => ({ date: row.date, count: Number(row.count) })),
+    });
+  } catch (err) {
+    console.error("archive query failed:", err);
+    return errorResponse("Database query failed", 500);
+  }
+}
+
+/**
+ * POST /api/article-rating  { articleId: number, rating: 1..5 }
+ * Anonymous editorial-quality feedback (PROJECT_SPEC §11). No accounts, no
+ * PII — the body carries only the article id and a 1-5 score. Duplicate
+ * guarding is client-side (localStorage) by design; this endpoint stays
+ * permissive so a cleared store can still submit. The response is always a
+ * fixed shape so the widget never leaks whether a row was stored.
+ */
+async function handleArticleRating(request, env) {
+  if (!env.DATABASE_URL) {
+    return errorResponse("DATABASE_URL is not configured", 500);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse("Invalid JSON body", 400);
+  }
+
+  const articleId = Number(body?.articleId);
+  const rating = Number(body?.rating);
+
+  if (!Number.isInteger(articleId) || articleId < 1) {
+    return errorResponse("articleId must be a positive integer", 400);
+  }
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return errorResponse("rating must be an integer between 1 and 5", 400);
+  }
+
+  try {
+    await query(
+      env.DATABASE_URL,
+      `INSERT INTO article_ratings (article_id, rating) VALUES ($1, $2)`,
+      [articleId, rating]
+    );
+  } catch (err) {
+    // The table may not be provisioned yet, or the article may not exist.
+    // Feedback is optional: never break the article page over it.
+    console.error("article rating insert failed:", err);
+    return json({ ok: true, stored: false });
+  }
+
+  return json({ ok: true, stored: true });
 }
 
 /**

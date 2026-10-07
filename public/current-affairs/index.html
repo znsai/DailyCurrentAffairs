@@ -9,8 +9,7 @@
     <link rel="canonical" href="/current-affairs/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
@@ -28,6 +27,7 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li><a href="/current-affairs/" aria-current="page">Current Affairs</a></li>
+                    <li><a href="/archive/">Archive</a></li>
                     <li><a href="/quiz/">Daily Quiz</a></li>
                 </ul>
             </nav>
@@ -36,28 +36,27 @@
     <main class="site-main archive-shell" id="main">
         <div class="archive-layout">
             <aside class="archive-sidebar">
-                <p class="archive-kicker">Archive</p>
+                <p class="archive-kicker">Daily view</p>
                 <h1>Current Affairs</h1>
+                <p class="archive-day" id="selected-day"></p>
                 <div class="archive-stat">
                     <span>Articles</span>
                     <strong id="article-count">0</strong>
                 </div>
-                <p class="archive-note">Daily briefings for UPSC, SSC, Banking and State PSC preparation.</p>
+                <p class="archive-note">Pick another day in the <a href="/archive/">Archive</a>.</p>
+                <p class="archive-note"><a id="back-today" href="/current-affairs/" hidden>Back to today</a></p>
+                <p class="archive-start-wrap" id="start-day-wrap" hidden>
+                    <a class="btn btn-primary" id="start-day" href="/current-affairs/">Start Today&rsquo;s Study
+                        &rarr;</a>
+                </p>
+                <div class="ruled archive-day-note">
+                    <p id="archive-day-intro">Every published item for this day, newest first.</p>
+                </div>
             </aside>
-
-            <!-- Writing zone for phase contract checks; off-screen so visual stays plain paper -->
-            <div class="ruled"
-                style="position: absolute; left: -9999px; top: -9999px; width: 0; height: 0; overflow: hidden;">
-                <p>Rule zone — not visible on page.</p>
-            </div>
 
             <div class="archive-feed">
                 <!-- Filter controls -->
                 <div class="archive-filters" role="group" aria-label="Filter current affairs">
-                    <label class="filter-label" for="filter-date">Date:</label>
-                    <select id="filter-date" class="filter-select">
-                        <option value="">All dates</option>
-                    </select>
                     <label class="filter-label" for="filter-subject">Subject:</label>
                     <select id="filter-subject" class="filter-select">
                         <option value="">All subjects</option>
@@ -89,6 +88,12 @@
                     <p class="empty-state" id="empty-state" style="display:none;">No articles match your filters.</p>
                     <ul class="article-list" id="article-list"></ul>
                 </section>
+
+                <nav class="pager" id="day-pager" hidden aria-label="Article pages">
+                    <button type="button" class="btn btn-secondary" id="page-prev">Previous</button>
+                    <p class="pager-status" id="page-status" role="status"></p>
+                    <button type="button" class="btn btn-secondary" id="page-next">Next</button>
+                </nav>
             </div>
         </div>
     </main>
@@ -96,6 +101,7 @@
         <ul>
             <li><a href="/">Home</a></li>
             <li><a href="/current-affairs/" aria-current="page">Current Affairs</a></li>
+            <li><a href="/archive/">Archive</a></li>
             <li><a href="/quiz/">Daily Quiz</a></li>
         </ul>
     </nav>
@@ -114,38 +120,124 @@
     </footer>
 
     <script>
-        // State
-        let allArticles = [];
-        let currentFilters = { date: '', subject: '' };
+        // Day-scoped Current Affairs (V1): URL state — ?date=YYYY-MM-DD (default
+        // canonical app day), ?subject=, ?page=. Never loads historical dates.
+        const PAGE_SIZE = 20;
 
-        // DOM elements
-        const filterDate = document.getElementById('filter-date');
         const filterSubject = document.getElementById('filter-subject');
         const articleList = document.getElementById('article-list');
         const loadingState = document.getElementById('loading-state');
         const emptyState = document.getElementById('empty-state');
         const articleCount = document.getElementById('article-count');
+        const selectedDay = document.getElementById('selected-day');
+        const backToday = document.getElementById('back-today');
+        const dayPager = document.getElementById('day-pager');
+        const pagePrev = document.getElementById('page-prev');
+        const pageNext = document.getElementById('page-next');
+        const pageStatus = document.getElementById('page-status');
+        const startDayWrap = document.getElementById('start-day-wrap');
+        const startDay = document.getElementById('start-day');
 
-        // Fetch articles from API
+        // Canonical app date (Asia/Kolkata): same convention as Home, Daily Quiz
+        // and the Worker fallbacks. Always sent explicitly in the query string.
+        function appToday() {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+            }).formatToParts(new Date());
+            const get = (type) => parts.find((part) => part.type === type).value;
+            return `${get('year')}-${get('month')}-${get('day')}`;
+        }
+
+        function isValidDay(value) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
+        }
+
+        function formatDayHeading(dateString) {
+            return new Intl.DateTimeFormat('en-IN', {
+                day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
+            }).format(new Date(dateString));
+        }
+
+        // The URL is the state: shareable, back-button friendly, deep-linkable.
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedDate = urlParams.get('date') || appToday();
+        const requestedSubject = urlParams.get('subject') || '';
+        let currentPage = Math.max(1, parseInt(urlParams.get('page') || '1', 10) || 1);
+
+        const knownSubject = Array.from(filterSubject.options)
+            .some((option) => option.value === requestedSubject);
+        const selectedDate = isValidDay(requestedDate) ? requestedDate : '';
+        const selectedSubject = knownSubject ? requestedSubject : '';
+        filterSubject.value = selectedSubject;
+
+        function buildPageUrl({
+            date = selectedDate || appToday(), subject = filterSubject.value, page = 1,
+        } = {}) {
+            const params = new URLSearchParams();
+            params.set('date', date);
+            if (subject) params.set('subject', subject);
+            if (page > 1) params.set('page', String(page));
+            return `/current-affairs/?${params.toString()}`;
+        }
+
+        function updatePager(total, shown) {
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            const show = totalPages > 1 && shown > 0;
+            dayPager.hidden = !show;
+            if (!show) return;
+            pageStatus.textContent = `Page ${currentPage} of ${totalPages} · ${total} articles`;
+            pagePrev.disabled = currentPage <= 1;
+            pageNext.disabled = currentPage >= totalPages;
+        }
+
+        // Fetch one day only: explicit date, bounded page size (API ceiling 200,
+        // daily UI never renders more than PAGE_SIZE cards).
         async function loadArticles() {
-            const date = filterDate.value;
-            const subject = filterSubject.value;
-            currentFilters = { date, subject };
+            if (!selectedDate) {
+                loadingState.style.display = 'none';
+                dayPager.hidden = true;
+                emptyState.textContent = 'That date is not valid. Pick a day from the Archive.';
+                emptyState.style.display = 'block';
+                return;
+            }
+            const query = new URLSearchParams({
+                date: selectedDate,
+                page: String(currentPage),
+                limit: String(PAGE_SIZE),
+            });
+            if (selectedSubject) query.set('subject', selectedSubject);
 
-            // Show loading state
             loadingState.style.display = 'block';
             emptyState.style.display = 'none';
             articleList.innerHTML = '';
             articleCount.textContent = '0';
+            dayPager.hidden = true;
 
             try {
-                const response = await fetch(`/api/current-affairs?date=${date}&subject=${subject}&page=1&limit=50`);
+                const response = await fetch(`/api/current-affairs?${query}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
-
-                allArticles = data.articles || [];
-                renderArticles(allArticles);
-                articleCount.textContent = String(data.count || 0);
+                const articles = data.articles || [];
+                const total = Number.isFinite(data.total) ? data.total : articles.length;
+                renderArticles(articles);
+                articleCount.textContent = String(total);
+                updatePager(total, articles.length);
+                // Primary entry point for the day (PROJECT_SPEC §6): jump
+                // straight into the first article of this day.
+                if (articles.length > 0) {
+                    startDay.href = `/current-affairs/${encodeURIComponent(articles[0].id)}`;
+                    startDayWrap.hidden = false;
+                } else {
+                    startDayWrap.hidden = true;
+                }
+                if (articles.length === 0) {
+                    emptyState.textContent = total > 0
+                        ? 'Nothing on this page. Use Previous to return to the first page.'
+                        : selectedSubject
+                            ? 'No articles match this subject for this date.'
+                            : 'No current affairs published for this date yet.';
+                    emptyState.style.display = 'block';
+                }
             } catch (err) {
                 console.error('Failed to load articles:', err);
                 articleList.innerHTML = '<li class="error-state">Failed to load articles. Please try again.</li>';
@@ -162,34 +254,11 @@
                 .replace(/"/g, '&quot;');
         }
 
-        function localDateString(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
         function formatCardDate(dateString) {
             if (!dateString) return '';
             return new Intl.DateTimeFormat('en-IN', {
-                day: '2-digit', month: 'short', year: 'numeric',
-            }).format(new Date(`${dateString}T12:00:00`));
-        }
-
-        // Rolling 30-day date options so the filter never goes stale (V1).
-        function buildDateOptions() {
-            const today = new Date();
-            for (let offset = 0; offset < 30; offset += 1) {
-                const date = new Date(today);
-                date.setDate(today.getDate() - offset);
-                date.setHours(12, 0, 0, 0);
-                const option = document.createElement('option');
-                option.value = localDateString(date);
-                option.textContent = new Intl.DateTimeFormat('en-IN', {
-                    day: '2-digit', month: 'short', year: 'numeric',
-                }).format(date);
-                filterDate.append(option);
-            }
+                day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
+            }).format(new Date(dateString));
         }
 
         // Render article items as study cards (V1): subject + date, title,
@@ -234,16 +303,32 @@
             }).join('');
         }
 
-        // Initialize: load articles on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Apply filters when changed
-            filterDate.addEventListener('change', loadArticles);
-            filterSubject.addEventListener('change', loadArticles);
+        // Initialize: URL-driven day view.
+        (function init() {
+            if (selectedDate) {
+                const heading = formatDayHeading(selectedDate);
+                selectedDay.textContent = heading;
+                document.title = `Current Affairs for ${heading} — Daily Current Affairs`;
+                document.querySelector('link[rel="canonical"]').href =
+                    window.location.pathname + window.location.search;
+                backToday.hidden = selectedDate === appToday();
+                backToday.href = buildPageUrl({ date: appToday() });
+                document.getElementById('archive-day-intro').textContent =
+                    `${heading} — every published item for this day, newest first.`;
+            }
 
-            // Dynamic date options + initial load
-            buildDateOptions();
+            filterSubject.addEventListener('change', () => {
+                window.location.href = buildPageUrl({ subject: filterSubject.value, page: 1 });
+            });
+            pagePrev.addEventListener('click', () => {
+                if (currentPage > 1) window.location.href = buildPageUrl({ page: currentPage - 1 });
+            });
+            pageNext.addEventListener('click', () => {
+                window.location.href = buildPageUrl({ page: currentPage + 1 });
+            });
+
             loadArticles();
-        });
+        })();
     </script>
 </body>
 

@@ -382,6 +382,82 @@
   font-size: var(--text-sm);
 }
 
+/* Anonymous article rating (PROJECT_SPEC §11): deliberately small and quiet —
+   editorial feedback, not a feature. Sits below the Exam Point panel. */
+.article-rating {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.article-rating-label {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.article-rating-stars {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.article-rating-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-faint);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.article-rating-star:hover:not(:disabled) {
+  color: var(--color-accent-border);
+}
+
+.article-rating-star.is-on,
+.article-rating-star[aria-checked="true"] {
+  color: var(--color-accent);
+}
+
+.article-rating-star:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.article-rating-star:disabled {
+  cursor: default;
+}
+
+.article-rating-hint {
+  margin: 0.35rem 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+}
+
+.article-rating-submit {
+  margin-top: 0.6rem;
+}
+
+.article-rating-thanks {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+.article-rating-error {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
 /* Daily Quiz session (V1): one question at a time with text-first feedback. */
 .quiz-toolbar {
   margin-top: 0.75rem;

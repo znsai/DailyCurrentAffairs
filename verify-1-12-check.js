@@ -266,6 +266,12 @@ for (const file of htmlFiles()) {
     `${file}: primary nav links Daily Quiz`,
     `${file}: primary nav does not link Daily Quiz (V1: Home / Current Affairs / Daily Quiz)`
   );
+  const hasArchive = primaryNavs.some((block) => block.includes('href="/archive/"'));
+  check(
+    hasArchive,
+    `${file}: primary nav links Archive`,
+    `${file}: primary nav does not link /archive/ (Phase 4: + Archive)`
+  );
   const hasHome = primaryNavs.some((block) => block.includes('href="/"'));
   check(
     hasHome,
@@ -293,6 +299,143 @@ check(
   quizPage.includes('src="/js/quiz.js"'),
   'quiz: page loads /js/quiz.js (V1 Daily Quiz session)',
   'quiz: page does not load /js/quiz.js (V1 needs the Daily Quiz session script)'
+);
+
+/* -- 11. Phase 4: archive route + canonical date + bounded UI ----------- */
+check(
+  /pathname === "\/api\/archive" && request\.method === "GET"/.test(workerSource),
+  'worker: GET /api/archive route registered (Phase 4)',
+  'worker: GET /api/archive route missing (Phase 4 needs month metadata)'
+);
+check(
+  /MAX_LIMIT = 200/.test(workerSource),
+  'worker: MAX_LIMIT is a 200 API ceiling',
+  'worker: MAX_LIMIT is not 200'
+);
+
+/* One canonical application date (Asia/Kolkata) everywhere: Home, Current
+   Affairs, Archive, Daily Quiz and Worker fallbacks must agree (Phase 4). */
+const DATE_CONVENTION_FILES = [
+  'worker/index.js',
+  'public/index.html',
+  'public/current-affairs/index.html',
+  'public/js/quiz.js',
+  'public/archive/index.html',
+];
+for (const rel of DATE_CONVENTION_FILES) {
+  const source = readFileSync(join(...rel.split('/')), 'utf8');
+  check(
+    source.includes('Asia/Kolkata'),
+    `${rel}: canonical app date Asia/Kolkata (Phase 4)`,
+    `${rel}: missing Asia/Kolkata — UTC/browser-local drift is not allowed`
+  );
+}
+
+/* Bounded daily UI: the 200-row ceiling must never become a render size. */
+const homeSource = readFileSync(join('public', 'index.html'), 'utf8');
+check(
+  /PREVIEW_LIMIT = 10/.test(homeSource),
+  'home: today preview capped at 10 cards',
+  'home: PREVIEW_LIMIT is not 10 (Home must stay a compact preview)'
+);
+check(
+  /QUIZ_SESSION_LIMIT = 10/.test(homeSource),
+  'home: quiz probe uses the 10-question session limit',
+  'home: QUIZ_SESSION_LIMIT is not 10 (Home must advertise the real session size)'
+);
+check(
+  /session=1/.test(homeSource),
+  'home: quiz probe requests the random session endpoint',
+  'home: quiz probe does not request session=1 (Home would count the full backlog)'
+);
+const caSource = readFileSync(join('public', 'current-affairs', 'index.html'), 'utf8');
+check(
+  /PAGE_SIZE = 20/.test(caSource),
+  'current-affairs: daily page size 20 with paging',
+  'current-affairs: PAGE_SIZE is not 20 (daily UI must page, never render 200)'
+);
+check(
+  caSource.includes('date: selectedDate'),
+  'current-affairs: fetch is explicitly day-scoped (date param)',
+  'current-affairs: fetch does not send an explicit date param'
+);
+check(
+  /id="start-day"/.test(caSource),
+  'current-affairs: day page has a Start Today Study entry point',
+  'current-affairs: day page is missing the Start Today Study CTA (PROJECT_SPEC §6)'
+);
+
+/* -- 12. Daily Quiz session: 10 random questions (PROJECT_SPEC §10) -------- */
+check(
+  /QUIZ_SESSION_SIZE = 10/.test(workerSource),
+  'worker: QUIZ_SESSION_SIZE is 10',
+  'worker: QUIZ_SESSION_SIZE is not 10 (the student session must be 10 questions)'
+);
+check(
+  /ORDER BY random\(\)/.test(workerSource),
+  'worker: quiz session is randomly ordered',
+  'worker: quiz session is not random (ORDER BY random() missing — the same fixed questions repeat)'
+);
+check(
+  /get\("session"\) === "1"/.test(workerSource),
+  'worker: quiz session is opt-in via session=1',
+  'worker: quiz session flag missing (the list endpoint must stay available)'
+);
+
+const quizJs = readFileSync(join('public', 'js', 'quiz.js'), 'utf8');
+check(
+  /QUIZ_SESSION_LIMIT = 10/.test(quizJs),
+  'quiz: session limited to 10 questions',
+  'quiz: QUIZ_SESSION_LIMIT is not 10 (the UI must render a 10-question session)'
+);
+check(
+  /session=1/.test(quizJs),
+  'quiz: page requests the random session endpoint',
+  'quiz: page does not request session=1 (it would render the full backlog)'
+);
+
+/* -- 13. Anonymous article rating (PROJECT_SPEC §11) --------------------- */
+check(
+  /POST \/api\/article-rating/.test(workerSource),
+  'worker: POST /api/article-rating route registered',
+  'worker: POST /api/article-rating route missing (§11 needs a submission endpoint)'
+);
+check(
+  /INSERT INTO article_ratings/.test(workerSource),
+  'worker: rating insert targets article_ratings',
+  'worker: rating insert is missing the article_ratings write'
+);
+check(
+  /rating BETWEEN 1 AND 5/.test(readFileSync(join('db', 'migrations', '002_create_article_ratings.sql'), 'utf8')),
+  'migration 002: rating constrained to 1-5',
+  'migration 002: rating CHECK constraint missing'
+);
+const articleSource = readFileSync(join('public', 'current-affairs', 'article.html'), 'utf8');
+check(
+  /article-rating-star/.test(articleSource),
+  'article: rating widget present (5 star buttons)',
+  'article: rating widget missing (§11 anonymous feedback)'
+);
+check(
+  /RATING_KEY = 'dca-article-ratings'/.test(articleSource),
+  'article: rating dedupes repeat submissions client-side',
+  'article: rating has no client-side dedupe (accidental repeat submissions)'
+);
+check(
+  /body: JSON\.stringify\(\{ articleId: id, rating: selected \}\)/.test(articleSource),
+  'article: rating posts articleId + rating only',
+  'article: rating payload is not the minimal { articleId, rating }'
+);
+/* §11 is anonymous: the rating form must not collect identity. The word
+   "account"/"email" in prose ("no account or PII") is fine; an input that
+   asks for them is not. */
+const ratingForm = articleSource.match(
+  /<section class="article-rating"[\s\S]*?<\/section>/
+) || [];
+check(
+  !/<input\b[^>]*\b(name|email|password|account)\b/i.test(ratingForm[0] || ''),
+  'article: rating collects no personal data',
+  'article: rating form appears to request personal data (§11 requires anonymous)'
 );
 
 /* -- Report ----------------------------------------------------------- */

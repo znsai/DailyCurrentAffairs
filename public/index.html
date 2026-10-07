@@ -9,8 +9,7 @@
         content="Read concise daily current affairs for Indian competitive exams, browse by topic, and find revision quizzes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
@@ -28,6 +27,7 @@
                 <ul>
                     <li><a href="/" aria-current="page">Home</a></li>
                     <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/archive/">Archive</a></li>
                     <li><a href="/quiz/">Daily Quiz</a></li>
                 </ul>
             </nav>
@@ -40,58 +40,80 @@
         </div>
     </header>
     <main class="site-main home-shell" id="main">
-        <nav class="home-topic-nav" aria-label="Browse by topic">
-            <a href="/" aria-current="page">Today</a>
-            <button type="button" data-subject="National Affairs">National</button>
-            <button type="button" data-subject="International Relations">International</button>
-            <button type="button" data-subject="Economy & Banking">Economy</button>
-            <button type="button" data-subject="Polity & Governance">Polity</button>
-            <button type="button" data-subject="Science & Technology">Science &amp; Tech</button>
-            <button type="button" data-subject="Sports">Sports</button>
-            <button type="button" data-subject="Awards & Honours">Awards</button>
-            <button type="button" data-subject="Appointments">Appointments</button>
+        <!-- 1. Today's Study: the daily starting point (V1 Home hierarchy). -->
+        <section class="home-hero" aria-labelledby="home-heading">
+            <p class="home-panel-kicker">Today&rsquo;s Study</p>
+            <p class="home-date" id="home-date">Loading&hellip;</p>
+            <h1 id="home-heading">Today&rsquo;s Current Affairs</h1>
+            <p class="home-feed-count" id="feed-count" aria-live="media">Loading current affairs&hellip;</p>
+            <div class="ruled home-hero-note">
+                <p class="home-hero-support">Concise exam-oriented briefings: what happened, why it matters, and the
+                    point worth remembering.</p>
+            </div>
+            <p class="home-start" id="start-wrap" hidden>
+                <a class="btn btn-primary" id="start-today" href="/current-affairs/">Start Today&rsquo;s Study
+                    &rarr;</a>
+            </p>
+        </section>
+
+        <!-- 2. Compact preview of today's articles. Orientation and selection,
+             not full reading: no summaries, Exam Point panels or source buttons. -->
+        <section class="home-section home-preview" aria-labelledby="preview-heading">
+            <div class="home-section-head">
+                <h2 id="preview-heading">Today&rsquo;s preview</h2>
+                <p class="home-section-meta" id="preview-meta">Loading&hellip;</p>
+            </div>
+            <ul class="home-article-list" id="article-list" aria-live="polite" aria-busy="true"></ul>
+            <p class="home-view-all" id="view-all-wrap" hidden>
+                <a class="btn btn-secondary" id="view-all-today" href="/current-affairs/">View all current-affairs
+                    items &rarr;</a>
+            </p>
+            <div class="notice home-feed-state" id="feed-state" role="status" hidden></div>
+        </section>
+
+        <!-- 3. Today's Quiz: a distinct recall action, never a progress dashboard. -->
+        <section class="home-section home-quiz" aria-labelledby="today-quiz-heading">
+            <p class="home-panel-kicker">Today&rsquo;s Quiz</p>
+            <h2 id="today-quiz-heading">Daily Quiz</h2>
+            <p id="today-quiz-status" role="status">Checking today&rsquo;s quiz&hellip;</p>
+            <p class="home-quiz-support">Test your recall of today&rsquo;s briefings, one question at a time.</p>
+            <a class="btn btn-primary" id="today-quiz-start" href="/quiz/" hidden>Start Daily Quiz &rarr;</a>
+        </section>
+
+        <!-- 4. Browse today's topics: the controlled subject list, deep-linked to
+             today's date by the script below. -->
+        <nav class="home-section home-topic-nav" aria-labelledby="topics-heading">
+            <h2 id="topics-heading">Browse Today&rsquo;s Topics</h2>
+            <div class="home-topic-chips" id="topic-chips">
+                <a href="/current-affairs/?subject=National%20Affairs" data-subject="National Affairs">National</a>
+                <a href="/current-affairs/?subject=International%20Relations"
+                    data-subject="International Relations">International</a>
+                <a href="/current-affairs/?subject=Economy%20%26%20Banking"
+                    data-subject="Economy &amp; Banking">Economy</a>
+                <a href="/current-affairs/?subject=Polity%20%26%20Governance"
+                    data-subject="Polity &amp; Governance">Polity</a>
+                <a href="/current-affairs/?subject=Science%20%26%20Technology"
+                    data-subject="Science &amp; Technology">Science &amp; Tech</a>
+                <a href="/current-affairs/?subject=Sports" data-subject="Sports">Sports</a>
+                <a href="/current-affairs/?subject=Awards%20%26%20Honours"
+                    data-subject="Awards &amp; Honours">Awards</a>
+                <a href="/current-affairs/?subject=Appointments" data-subject="Appointments">Appointments</a>
+            </div>
         </nav>
 
-        <section class="home-date-strip" id="date-strip" aria-label="Choose a date" aria-live="polite"></section>
-
-        <div class="home-layout">
-            <section class="home-primary" aria-labelledby="home-heading">
-                <header class="home-day-heading">
-                    <p class="home-date-number" id="date-number" aria-hidden="true"></p>
-                    <div>
-                        <p class="home-date-month" id="date-month"></p>
-                        <h1 id="home-heading">Today&rsquo;s current affairs</h1>
-                        <p class="home-feed-count" id="feed-count" aria-live="polite">Loading current affairs&hellip;</p>
-                        <p class="home-start" id="start-wrap" hidden>
-                            <a class="btn btn-primary" id="start-today" href="/current-affairs/">Start today&rsquo;s current
-                                affairs</a>
-                        </p>
-                    </div>
-                </header>
-                <ul class="home-article-list ruled" id="article-list" aria-live="polite"></ul>
-                <p class="home-state" id="feed-state" role="status" hidden></p>
-            </section>
-
-            <aside class="home-sidebar" aria-label="Study and more stories">
-                <section class="home-quiz-panel" aria-labelledby="today-quiz-heading">
-                    <p class="home-panel-kicker">Today&rsquo;s Quiz</p>
-                    <h2 id="today-quiz-heading">Daily Quiz</h2>
-                    <p id="today-quiz-status" role="status">Checking today&rsquo;s quiz&hellip;</p>
-                    <a class="btn btn-primary" id="today-quiz-start" href="/quiz/" hidden>Start today&rsquo;s quiz</a>
-                </section>
-                <section class="home-more-panel" aria-labelledby="more-heading">
-                    <h2 id="more-heading">More to read</h2>
-                    <ol id="more-articles">
-                        <li class="home-sidebar-empty">More stories will appear here.</li>
-                    </ol>
-                </section>
-            </aside>
-        </div>
+        <!-- 5. Archive discovery: secondary, and never a calendar on Home. -->
+        <section class="home-section home-archive" aria-labelledby="archive-heading">
+            <p class="home-panel-kicker">Archive</p>
+            <h2 id="archive-heading">Previous dates</h2>
+            <p>Missed a day? Every past briefing is stored by date.</p>
+            <a class="btn btn-secondary" href="/archive/">Browse previous dates &rarr;</a>
+        </section>
     </main>
     <nav class="mobile-nav" aria-label="Primary mobile">
         <ul>
             <li><a href="/" aria-current="page">Home</a></li>
             <li><a href="/current-affairs/">Current Affairs</a></li>
+            <li><a href="/archive/">Archive</a></li>
             <li><a href="/quiz/">Daily Quiz</a></li>
         </ul>
     </nav>
@@ -115,58 +137,49 @@
         const feedState = document.getElementById('feed-state');
         const searchForm = document.getElementById('home-search');
         const searchInput = document.getElementById('search-query');
-        const dateStrip = document.getElementById('date-strip');
-        const moreArticles = document.getElementById('more-articles');
+        const viewAllWrap = document.getElementById('view-all-wrap');
+        const viewAllToday = document.getElementById('view-all-today');
         const dateHeading = document.getElementById('home-heading');
         const startWrap = document.getElementById('start-wrap');
         const startToday = document.getElementById('start-today');
         const quizStatus = document.getElementById('today-quiz-status');
         const quizStart = document.getElementById('today-quiz-start');
-        let selectedDate = localDateString(new Date());
-        let selectedSubject = '';
+        const homeDate = document.getElementById('home-date');
+        const previewMeta = document.getElementById('preview-meta');
+        const topicChips = document.getElementById('topic-chips');
         let visibleArticles = [];
-        let latestArticles = [];
 
-        function localDateString(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+        // Canonical app date (V1): Asia/Kolkata "today", matching the server
+        // fallback. Frontend callers always send explicit dates; browser-local
+        // getters are never used so normal behavior cannot drift with UTC.
+        function appToday() {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+            }).formatToParts(new Date());
+            const get = (type) => parts.find((part) => part.type === type).value;
+            return `${get('year')}-${get('month')}-${get('day')}`;
         }
 
         function formatDate(dateString, options) {
-            return new Intl.DateTimeFormat('en-IN', options).format(new Date(`${dateString}T12:00:00`));
+            return new Intl.DateTimeFormat('en-IN', { ...options, timeZone: 'Asia/Kolkata' })
+                .format(new Date(dateString));
         }
 
-        function buildDateStrip() {
-            dateStrip.replaceChildren();
-            const today = new Date();
-            for (let offset = 0; offset < 14; offset += 1) {
-                const date = new Date(today);
-                date.setDate(today.getDate() - offset);
-                const dateString = localDateString(date);
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'home-date-button';
-                button.dataset.date = dateString;
-                button.setAttribute('aria-pressed', String(dateString === selectedDate));
-                const weekday = document.createElement('span');
-                weekday.textContent = offset === 0 ? 'Today' : formatDate(dateString, { weekday: 'short' });
-                const day = document.createElement('strong');
-                day.textContent = formatDate(dateString, { day: 'numeric' });
-                button.append(weekday, day);
-                button.addEventListener('click', () => {
-                    selectedDate = dateString;
-                    searchInput.value = '';
-                    buildDateStrip();
-                    loadArticles();
-                });
-                dateStrip.append(button);
+        // Compact today preview (V1): current app day only, capped well below
+        // any API ceiling. Full reading happens on the day-scoped listing.
+        const PREVIEW_LIMIT = 10;
+
+        // Daily Quiz session size (PROJECT_SPEC §10): the student-facing quiz
+        // is a 10-question random sample for the day, never the full backlog.
+        const QUIZ_SESSION_LIMIT = 10;
+
+        // Topic deep links are scoped to today (V1 Home): the controlled subject
+        // list is unchanged, only the destination now carries today's date.
+        function scopeTopicsToDate(today) {
+            for (const link of topicChips.querySelectorAll('a[data-subject]')) {
+                const params = new URLSearchParams({ date: today, subject: link.dataset.subject });
+                link.href = `/current-affairs/?${params.toString()}`;
             }
-            const archiveLink = document.createElement('a');
-            archiveLink.href = '/current-affairs/';
-            archiveLink.textContent = 'Full archive';
-            dateStrip.append(archiveLink);
         }
 
         function createArticleItem(article, index) {
@@ -180,15 +193,12 @@
             const subject = document.createElement('p');
             subject.className = 'home-article-subject';
             subject.textContent = article.subject || 'Current Affairs';
-            const title = document.createElement('h2');
+            const title = document.createElement('h3');
             const link = document.createElement('a');
             link.href = `/current-affairs/${encodeURIComponent(article.id)}`;
             link.textContent = article.title || 'Untitled article';
             title.append(link);
-            const summary = document.createElement('p');
-            summary.className = 'home-article-summary';
-            summary.textContent = article.brief_summary || '';
-            content.append(subject, title, summary);
+            content.append(subject, title);
             item.append(number, content);
             return item;
         }
@@ -196,79 +206,49 @@
         function renderArticles(articles) {
             visibleArticles = articles;
             articleList.replaceChildren(...articles.map(createArticleItem));
-            renderMoreArticles();
         }
 
-        function renderMoreArticles() {
-            moreArticles.replaceChildren();
-            latestArticles
-                .filter((article) => !visibleArticles.some((visible) => visible.id === article.id))
-                .slice(0, 5)
-                .forEach((article) => {
-                    const item = document.createElement('li');
-                    const link = document.createElement('a');
-                    link.href = `/current-affairs/${encodeURIComponent(article.id)}`;
-                    link.textContent = article.title || 'Untitled article';
-                    item.append(link);
-                    moreArticles.append(item);
-                });
-            if (moreArticles.childElementCount === 0) {
-                const item = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = '/current-affairs/';
-                link.textContent = 'Browse the full archive';
-                item.append(link);
-                moreArticles.append(item);
-            }
-        }
-
-        async function loadMoreArticles() {
-            try {
-                const response = await fetch('/api/current-affairs?page=1&limit=10');
-                if (!response.ok) throw new Error('Unable to load recent articles.');
-                const data = await response.json();
-                latestArticles = data.articles || [];
-            } catch (error) {
-                latestArticles = [];
-            }
-            renderMoreArticles();
-        }
-
+        // Today's feed only: canonical app day, explicit date, compact cap.
         async function loadArticles(query = '') {
-            const params = new URLSearchParams({ page: '1', limit: '20' });
-            if (query) {
-                params.set('q', query);
-            } else {
-                params.set('date', selectedDate);
-                if (selectedSubject) params.set('subject', selectedSubject);
-            }
-            dateHeading.textContent = query ? `Search: ${query}` : selectedDate === localDateString(new Date())
-                ? "Today's current affairs"
-                : `${formatDate(selectedDate, { day: 'numeric', month: 'long', year: 'numeric' })} current affairs`;
-            document.getElementById('date-number').textContent = formatDate(selectedDate, { day: 'numeric' });
-            document.getElementById('date-month').textContent = formatDate(selectedDate, { month: 'long', year: 'numeric' });
+            const today = appToday();
+            homeDate.textContent = formatDate(today, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            scopeTopicsToDate(today);
             feedState.hidden = true;
-            feedCount.textContent = 'Loading updates…';
+            feedCount.textContent = 'Loading current affairs…';
+            previewMeta.textContent = 'Loading…';
             articleList.setAttribute('aria-busy', 'true');
             try {
-                const endpoint = query ? '/api/search' : '/api/current-affairs';
-                const response = await fetch(`${endpoint}?${params}`);
+                const endpoint = query
+                    ? `/api/search?${new URLSearchParams({ q: query, page: '1', limit: '20' })}`
+                    : `/api/current-affairs?${new URLSearchParams({ date: today, page: '1', limit: String(PREVIEW_LIMIT) })}`;
+                const response = await fetch(endpoint);
                 if (!response.ok) throw new Error('Unable to load current affairs. Please try again.');
                 const data = await response.json();
                 const articles = data.articles || [];
                 renderArticles(articles);
+                const total = query ? articles.length : (Number.isFinite(data.total) ? data.total : articles.length);
                 feedCount.textContent = query
                     ? `${articles.length} ${articles.length === 1 ? 'result' : 'results'}`
-                    : `${articles.length} current-affairs ${articles.length === 1 ? 'item' : 'items'}`;
+                    : `${total} current-affairs ${total === 1 ? 'item' : 'items'}`;
+                previewMeta.textContent = query
+                    ? 'Search results'
+                    : `${formatDate(today, { day: '2-digit', month: 'long', year: 'numeric' })} · ${total} ${total === 1 ? 'item' : 'items'}`;
                 updateStartCta(query, articles);
+                viewAllWrap.hidden = Boolean(query) || total === 0;
+                viewAllToday.href = `/current-affairs/?date=${today}`;
+                viewAllToday.textContent = `View all ${total} current-affairs ${total === 1 ? 'item' : 'items'} →`;
                 if (articles.length === 0) {
-                    feedState.textContent = query ? 'No articles found. Try another search.' : 'No articles for this date yet.';
+                    feedState.textContent = query
+                        ? 'No articles found. Try another search.'
+                        : "Today's current affairs isn't published yet.";
                     feedState.hidden = false;
                 }
             } catch (error) {
                 articleList.replaceChildren();
                 feedCount.textContent = 'Current affairs unavailable';
+                previewMeta.textContent = 'Unavailable';
                 startWrap.hidden = true;
+                viewAllWrap.hidden = true;
                 feedState.textContent = error.message;
                 feedState.hidden = false;
             } finally {
@@ -278,23 +258,22 @@
 
         // Primary action: start reading today's first item (V1 Home).
         function updateStartCta(query, articles) {
-            const show = !query
-                && !selectedSubject
-                && selectedDate === localDateString(new Date())
-                && articles.length > 0;
+            const show = !query && articles.length > 0;
             startWrap.hidden = !show;
             if (show) startToday.href = `/current-affairs/${encodeURIComponent(articles[0].id)}`;
         }
 
         // Today's Quiz availability (V1 Home): shown only when questions exist.
+        // The session endpoint returns the 10-question sample the student will
+        // actually take, so the count shown here can never misrepresent it.
         async function loadTodayQuiz() {
             try {
-                const response = await fetch(`/api/quiz?date=${localDateString(new Date())}&limit=50`);
+                const response = await fetch(`/api/quiz?date=${appToday()}&limit=${QUIZ_SESSION_LIMIT}&session=1`);
                 if (!response.ok) throw new Error("Unable to load today's quiz.");
                 const data = await response.json();
                 const questions = data.questions || [];
                 if (questions.length > 0) {
-                    quizStatus.textContent = `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} ready`;
+                    quizStatus.textContent = `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} available`;
                     quizStart.hidden = false;
                 } else {
                     quizStatus.textContent = "Today's quiz isn't published yet.";
@@ -311,20 +290,7 @@
             loadArticles(searchInput.value.trim());
         });
 
-        document.querySelectorAll('.home-topic-nav [data-subject]').forEach((button) => {
-            button.addEventListener('click', () => {
-                selectedSubject = selectedSubject === button.dataset.subject ? '' : button.dataset.subject;
-                searchInput.value = '';
-                document.querySelectorAll('.home-topic-nav [data-subject]').forEach((topic) => {
-                    topic.setAttribute('aria-pressed', String(topic === button && selectedSubject !== ''));
-                });
-                loadArticles();
-            });
-        });
-
-        buildDateStrip();
         loadArticles();
-        loadMoreArticles();
         loadTodayQuiz();
     </script>
 </body>

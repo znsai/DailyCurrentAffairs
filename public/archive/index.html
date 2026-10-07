@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive — Daily Current Affairs</title>
+    <meta name="description" content="Browse current affairs by date. Pick a day to study its articles.">
+    <link rel="canonical" href="/archive/">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="/" aria-label="Daily Current Affairs — home">
+                <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/archive/" aria-current="page">Archive</a></li>
+                    <li><a href="/quiz/">Daily Quiz</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="site-main" id="main">
+        <p class="archive-kicker">Current Affairs</p>
+        <h1>Archive</h1>
+        <div class="ruled stack-md">
+            <p>Pick a day to study its current affairs. Each date with published
+                articles shows its count.</p>
+        </div>
+
+        <nav class="month-nav stack-lg" aria-label="Choose a month">
+            <button type="button" class="btn btn-secondary" id="month-prev">Previous month</button>
+            <button type="button" class="btn btn-secondary" id="month-today" hidden>This month</button>
+            <button type="button" class="btn btn-secondary" id="month-next">Next month</button>
+        </nav>
+        <p class="sr-only" id="archive-status" role="status"></p>
+
+        <p class="loading-state stack-lg" id="archive-loading">Loading calendar&hellip;</p>
+
+        <div id="calendar-frame" class="stack-lg" hidden>
+            <table class="archive-calendar">
+                <caption id="archive-month-label"></caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Mon</th>
+                        <th scope="col">Tue</th>
+                        <th scope="col">Wed</th>
+                        <th scope="col">Thu</th>
+                        <th scope="col">Fri</th>
+                        <th scope="col">Sat</th>
+                        <th scope="col">Sun</th>
+                    </tr>
+                </thead>
+                <tbody id="archive-days"></tbody>
+            </table>
+            <p class="calendar-legend">A number means articles were published that day; a plain date has none.</p>
+        </div>
+
+        <div class="notice stack-lg" id="archive-empty" hidden>
+            <h2>No articles this month</h2>
+            <p id="archive-empty-text"></p>
+            <p><a href="/current-affairs/">Go to today's current affairs</a></p>
+        </div>
+
+        <div class="notice notice-error stack-lg" id="archive-error" role="alert" hidden>
+            <h2>Archive unavailable</h2>
+            <p>We couldn't load the archive. Please try again in a moment.</p>
+        </div>
+    </main>
+    <nav class="mobile-nav" aria-label="Primary mobile">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/current-affairs/">Current Affairs</a></li>
+            <li><a href="/archive/" aria-current="page">Archive</a></li>
+            <li><a href="/quiz/">Daily Quiz</a></li>
+        </ul>
+    </nav>
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <p>Daily Current Affairs &middot; Built for students</p>
+            <nav aria-label="Legal">
+                <ul>
+                    <li><a href="/legal/privacy-policy/">Privacy</a></li>
+                    <li><a href="/legal/cookie-policy/">Cookies</a></li>
+                    <li><a href="/legal/terms/">Terms</a></li>
+                    <li><a href="/legal/disclaimer/">Disclaimer</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+    <script>
+        // Archive (Phase 4): month metadata only — never loads articles.
+        // Canonical app month (Asia/Kolkata), same convention as Home, Daily
+        // Current Affairs and Daily Quiz; always sent explicitly to the API.
+        (function () {
+            const prevButton = document.getElementById('month-prev');
+            const nextButton = document.getElementById('month-next');
+            const todayButton = document.getElementById('month-today');
+            const monthLabel = document.getElementById('archive-month-label');
+            const daysBody = document.getElementById('archive-days');
+            const calendarFrame = document.getElementById('calendar-frame');
+            const loadingState = document.getElementById('archive-loading');
+            const emptyState = document.getElementById('archive-empty');
+            const emptyText = document.getElementById('archive-empty-text');
+            const errorState = document.getElementById('archive-error');
+            const status = document.getElementById('archive-status');
+
+            function appToday() {
+                const parts = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+                }).formatToParts(new Date());
+                const get = (type) => parts.find((part) => part.type === type).value;
+                return `${get('year')}-${get('month')}-${get('day')}`;
+            }
+
+            const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+            const urlMonth = new URLSearchParams(window.location.search).get('month') || '';
+            const stateMonth = MONTH_RE.test(urlMonth) ? urlMonth : appToday().slice(0, 7);
+            const currentMonth = appToday().slice(0, 7);
+
+            function monthParts(month) {
+                return { year: Number(month.slice(0, 4)), monthIndex: Number(month.slice(5, 7)) - 1 };
+            }
+
+            function labelFor(month) {
+                return new Intl.DateTimeFormat('en-IN', {
+                    month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
+                })
+                    .format(new Date(`${month}-01T00:00:00Z`));
+            }
+
+            function shiftMonth(month, delta) {
+                const parts = monthParts(month);
+                const date = new Date(parts.year, parts.monthIndex + delta, 1, 12);
+                const year = date.getFullYear();
+                const monthNum = String(date.getMonth() + 1).padStart(2, '0');
+                return `${year}-${monthNum}`;
+            }
+
+            function setMonthUi(month) {
+                const prev = shiftMonth(month, -1);
+                const next = shiftMonth(month, 1);
+                monthLabel.textContent = labelFor(month);
+                prevButton.textContent = `← ${labelFor(prev)}`;
+                prevButton.setAttribute('aria-label', `Previous month: ${labelFor(prev)}`);
+                nextButton.textContent = `${labelFor(next)} →`;
+                nextButton.setAttribute('aria-label', `Next month: ${labelFor(next)}`);
+                todayButton.hidden = month === currentMonth;
+            }
+
+            prevButton.addEventListener('click', () => {
+                window.location.href = `/archive/?month=${shiftMonth(stateMonth, -1)}`;
+            });
+            nextButton.addEventListener('click', () => {
+                window.location.href = `/archive/?month=${shiftMonth(stateMonth, 1)}`;
+            });
+            todayButton.addEventListener('click', () => {
+                window.location.href = '/archive/';
+            });
+
+            function dayLabel(dateStr) {
+                return new Intl.DateTimeFormat('en-IN', {
+                    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
+                }).format(new Date(dateStr));
+            }
+
+            function renderCalendar(data) {
+                const parts = monthParts(data.month);
+                const firstWeekday = (new Date(parts.year, parts.monthIndex, 1).getDay() + 6) % 7;
+                const daysInMonth = new Date(parts.year, parts.monthIndex + 1, 0).getDate();
+                const counts = new Map((data.days || []).map((day) => [day.date, day.count]));
+                const today = appToday();
+
+                daysBody.replaceChildren();
+                let row = document.createElement('tr');
+                const addBlank = () => {
+                    const blank = document.createElement('td');
+                    blank.className = 'cal-blank';
+                    blank.setAttribute('aria-hidden', 'true');
+                    return blank;
+                };
+                for (let i = 0; i < firstWeekday; i += 1) row.append(addBlank());
+
+                for (let day = 1; day <= daysInMonth; day += 1) {
+                    const dateStr = `${data.month}-${String(day).padStart(2, '0')}`;
+                    const isToday = dateStr === today;
+                    const count = counts.get(dateStr);
+                    const cell = document.createElement('td');
+                    if (count) {
+                        const link = document.createElement('a');
+                        link.className = 'cal-cell';
+                        link.href = `/current-affairs/?date=${dateStr}`;
+                        link.setAttribute('aria-label',
+                            `${dayLabel(dateStr)}, ${count} ${count === 1 ? 'article' : 'articles'}`);
+                        if (isToday) link.setAttribute('aria-current', 'date');
+                        const dayEl = document.createElement('span');
+                        dayEl.className = `cal-day${isToday ? ' is-today' : ''}`;
+                        dayEl.textContent = String(day);
+                        const countEl = document.createElement('span');
+                        countEl.className = 'cal-count';
+                        countEl.textContent = String(count);
+                        link.append(dayEl, countEl);
+                        cell.append(link);
+                    } else {
+                        const dayEl = document.createElement('span');
+                        dayEl.className = `cal-empty${isToday ? ' is-today' : ''}`;
+                        if (isToday) dayEl.setAttribute('aria-current', 'date');
+                        dayEl.textContent = String(day);
+                        const srOnly = document.createElement('span');
+                        srOnly.className = 'sr-only';
+                        srOnly.textContent = isToday ? ', today, no articles' : ', no articles';
+                        dayEl.append(srOnly);
+                        cell.append(dayEl);
+                    }
+                    row.append(cell);
+                    if (row.children.length === 7) {
+                        daysBody.append(row);
+                        row = document.createElement('tr');
+                    }
+                }
+                if (row.children.length > 0) {
+                    while (row.children.length < 7) row.append(addBlank());
+                    daysBody.append(row);
+                }
+            }
+
+            async function load() {
+                setMonthUi(stateMonth);
+                try {
+                    const response = await fetch(`/api/archive?month=${stateMonth}`);
+                    if (!response.ok) throw new Error('Archive request failed');
+                    const data = await response.json();
+                    const days = data.days || [];
+                    loadingState.hidden = true;
+                    if (days.length === 0) {
+                        emptyText.textContent = `No current affairs published in ${labelFor(stateMonth)} yet.`;
+                        emptyState.hidden = false;
+                        status.textContent = `${labelFor(stateMonth)}: no articles`;
+                        return;
+                    }
+                    renderCalendar(data);
+                    calendarFrame.hidden = false;
+                    const label = labelFor(stateMonth);
+                    status.textContent = `${label}: ${days.length} ${days.length === 1 ? 'day' : 'days'} with articles`;
+                } catch (error) {
+                    loadingState.hidden = true;
+                    errorState.hidden = false;
+                }
+            }
+
+            load();
+        })();
+    </script>
+</body>
+
+</html>

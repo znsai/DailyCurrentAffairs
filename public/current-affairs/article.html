@@ -9,8 +9,7 @@
     <link rel="canonical" href="/current-affairs/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
@@ -28,6 +27,7 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li><a href="/current-affairs/">Current Affairs</a></li>
+                    <li><a href="/archive/">Archive</a></li>
                     <li><a href="/quiz/">Daily Quiz</a></li>
                 </ul>
             </nav>
@@ -46,20 +46,46 @@
             </div>
 
             <h2 class="article-section-label">Quick Summary</h2>
-            <div class="article-content" id="article-content">
+            <div class="article-content ruled" id="article-content">
                 <!-- Content loaded via API -->
-            </div>
-
-            <!-- Writing zone for phase contract checks; off-screen so visual stays plain paper -->
-            <div class="ruled"
-                style="position: absolute; left: -9999px; top: -9999px; width: 0; height: 0; overflow: hidden;">
-                <p>Rule zone — not visible on page.</p>
             </div>
 
             <div class="exam-point-panel" id="exam-point-panel">
                 <h3 class="exam-point-title"><span aria-hidden="true">⭐ </span>EXAM POINT</h3>
                 <p class="exam-point-text" id="exam-point-text"></p>
             </div>
+
+            <!-- Anonymous editorial feedback (PROJECT_SPEC §11): lightweight,
+                 never dominant, no account or PII. One submission per browser. -->
+            <section class="article-rating" id="article-rating" aria-labelledby="article-rating-label" hidden>
+                <p class="article-rating-label" id="article-rating-label">Was this useful for your exam preparation?</p>
+                <div class="article-rating-stars" id="article-rating-stars" role="radiogroup"
+                    aria-labelledby="article-rating-label">
+                    <button type="button" class="article-rating-star" data-rating="1" role="radio" aria-checked="false"
+                        aria-label="1 — Not useful"><span aria-hidden="true">☆</span>
+                        <span class="sr-only">1</span></button>
+                    <button type="button" class="article-rating-star" data-rating="2" role="radio" aria-checked="false"
+                        aria-label="2"><span aria-hidden="true">☆</span>
+                        <span class="sr-only">2</span></button>
+                    <button type="button" class="article-rating-star" data-rating="3" role="radio" aria-checked="false"
+                        aria-label="3"><span aria-hidden="true">☆</span>
+                        <span class="sr-only">3</span></button>
+                    <button type="button" class="article-rating-star" data-rating="4" role="radio" aria-checked="false"
+                        aria-label="4"><span aria-hidden="true">☆</span>
+                        <span class="sr-only">4</span></button>
+                    <button type="button" class="article-rating-star" data-rating="5" role="radio" aria-checked="false"
+                        aria-label="5 — Very useful"><span aria-hidden="true">☆</span>
+                        <span class="sr-only">5</span></button>
+                </div>
+                <p class="article-rating-hint" id="article-rating-hint">1 = Not useful &middot; 5 = Very useful</p>
+                <p class="article-rating-submit" id="article-rating-submit-wrap" hidden>
+                    <button type="button" class="btn btn-secondary" id="article-rating-submit">Submit rating</button>
+                </p>
+                <p class="article-rating-thanks" id="article-rating-thanks" role="status" hidden>Thanks for the
+                    feedback.</p>
+                <p class="article-rating-error" id="article-rating-error" role="alert" hidden>Feedback could not be
+                    saved. Please try again later.</p>
+            </section>
 
             <!-- Active recall: revealed only when an associated question exists (V1).
                  Answer and explanation stay hidden until the student asks for them. -->
@@ -76,7 +102,8 @@
             </section>
 
             <div class="article-actions" aria-label="Article actions">
-                <a href="/current-affairs/" class="btn btn-secondary" aria-label="Back to current affairs list">
+                <a href="/current-affairs/" class="btn btn-secondary" id="back-to-day"
+                    aria-label="Back to current affairs list">
                     Back to Current Affairs
                 </a>
                 <a href="#" class="btn btn-secondary" id="article-source" target="_blank" rel="noopener noreferrer"
@@ -90,6 +117,7 @@
         <ul>
             <li><a href="/">Home</a></li>
             <li><a href="/current-affairs/">Current Affairs</a></li>
+            <li><a href="/archive/">Archive</a></li>
             <li><a href="/quiz/">Daily Quiz</a></li>
         </ul>
     </nav>
@@ -127,7 +155,9 @@
 
         // Render article HTML
         function renderArticle(data) {
-            const date = data.date ? new Date(data.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            const date = data.date ? new Intl.DateTimeFormat('en-GB', {
+                day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
+            }).format(new Date(data.date)) : '';
             const published = data.created_at ? new Date(data.created_at).toLocaleDateString('en-GB') : '';
             const subject = data.subject || '';
 
@@ -136,6 +166,12 @@
             document.getElementById('article-subject').textContent = subject ? `(${subject})` : '';
             document.getElementById('article-published').setAttribute('datetime', data.created_at || '');
             document.getElementById('article-published').textContent = published || '';
+
+            // Back link returns to the article's day, never a mixed feed (Phase 4).
+            if (data.date) {
+                document.getElementById('back-to-day').href =
+                    `/current-affairs/?date=${encodeURIComponent(data.date)}`;
+            }
 
             // Article content
             const contentDiv = document.getElementById('article-content');
@@ -166,6 +202,10 @@
 
             // Active recall: shown only when an associated question exists (V1).
             if (data.url) loadTestYourself(data.url);
+
+            // Anonymous feedback (PROJECT_SPEC §11): available once the article
+            // is loaded, since the rating is tied to its id.
+            initArticleRating(data.id);
         }
 
         // Test Yourself: look up the question associated with this article's
@@ -202,9 +242,113 @@
             }
         }
 
+        // Anonymous article rating (PROJECT_SPEC §11). No account, no PII;
+        // localStorage only guards against accidental repeat submissions from
+        // the same browser. The widget degrades silently if saving fails.
+        const RATING_KEY = 'dca-article-ratings';
+
+        function readRatedIds() {
+            try {
+                const raw = localStorage.getItem(RATING_KEY);
+                return raw ? new Set(JSON.parse(raw)) : new Set();
+            } catch {
+                return new Set();
+            }
+        }
+
+        function writeRatedId(id) {
+            try {
+                const ids = readRatedIds();
+                ids.add(id);
+                localStorage.setItem(RATING_KEY, JSON.stringify([...ids]));
+            } catch {
+                // Storage may be unavailable; the submit still proceeds.
+            }
+        }
+
+        function initArticleRating(articleId) {
+            const section = document.getElementById('article-rating');
+            if (!section || !Number.isInteger(Number(articleId))) return;
+            section.hidden = false;
+            const id = Number(articleId);
+
+            const stars = Array.from(section.querySelectorAll('.article-rating-star'));
+            const hint = document.getElementById('article-rating-hint');
+            const submitWrap = document.getElementById('article-rating-submit-wrap');
+            const submitButton = document.getElementById('article-rating-submit');
+            const thanks = document.getElementById('article-rating-thanks');
+            const error = document.getElementById('article-rating-error');
+            let selected = 0;
+
+            // A browser that has already rated this article is thanked, not
+            // asked again.
+            if (readRatedIds().has(id)) {
+                stars.forEach((star) => (star.disabled = true));
+                hint.hidden = true;
+                thanks.hidden = false;
+                return;
+            }
+
+            function paint(rating) {
+                stars.forEach((star) => {
+                    const value = Number(star.dataset.rating);
+                    star.setAttribute('aria-checked', String(value === rating));
+                    star.classList.toggle('is-on', value <= rating);
+                    star.querySelector('[aria-hidden="true"]').textContent = value <= rating ? '★' : '☆';
+                });
+            }
+
+            function choose(rating) {
+                selected = rating;
+                paint(rating);
+                hint.textContent = `${rating} / 5 selected`;
+                submitWrap.hidden = false;
+            }
+
+            stars.forEach((star, index) => {
+                star.addEventListener('click', () => choose(Number(star.dataset.rating)));
+                star.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        const next = stars[Math.min(index + 1, stars.length - 1)];
+                        next.focus();
+                        choose(Number(next.dataset.rating));
+                    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        const prev = stars[Math.max(index - 1, 0)];
+                        prev.focus();
+                        choose(Number(prev.dataset.rating));
+                    }
+                });
+            });
+
+            // One submission per browser: selecting a star only arms the
+            // rating; the explicit Submit action sends it.
+            submitButton.addEventListener('click', async () => {
+                if (!selected) return;
+                stars.forEach((s) => (s.disabled = true));
+                submitButton.disabled = true;
+                try {
+                    const response = await fetch('/api/article-rating', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ articleId: id, rating: selected }),
+                    });
+                    if (!response.ok) throw new Error('Rating request failed');
+                    writeRatedId(id);
+                    hint.hidden = true;
+                    submitWrap.hidden = true;
+                    thanks.hidden = false;
+                } catch {
+                    stars.forEach((s) => (s.disabled = false));
+                    submitButton.disabled = false;
+                    error.hidden = false;
+                }
+            });
+        }
+
         // Initialize: extract article ID from URL or use default
-        document.addEventListener('DOMContentLoaded', () => {
-            // Try to get article ID from URL path like /current-affairs/[id]
+        document.addEventListener('DOMContentLoaded', () => {            // Try to get article ID from URL path like /current-affairs/[id]
             const path = window.location.pathname;
             const match = path.match(/\/current-affairs\/([^/]+)/);
             const articleId = match ? match[1] : 'latest';

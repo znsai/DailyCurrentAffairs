@@ -28,21 +28,27 @@
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const LETTERS = ['A', 'B', 'C', 'D'];
+  // Daily Quiz session size (PROJECT_SPEC §10): the student takes at most 10
+  // randomly selected questions for the day, never the full backlog.
+  const QUIZ_SESSION_LIMIT = 10;
   let questions = [];
   let states = [];
   let index = 0;
 
-  function localDateString(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  // Canonical app date (Asia/Kolkata): matches Worker fallbacks and Home.
+  // Frontend callers always send this date explicitly to the API.
+  function appToday() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date());
+    const get = (type) => parts.find((part) => part.type === type).value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
   }
 
   function formatDateLine(dateString) {
     return new Intl.DateTimeFormat('en-IN', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-    }).format(new Date(`${dateString}T12:00:00`));
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
+    }).format(new Date(dateString));
   }
 
   function escapeHtml(value) {
@@ -55,6 +61,10 @@
 
   function correctLetter(question) {
     return String(question.correct_answer || '').trim().toUpperCase();
+  }
+
+  function optionText(question, letter) {
+    return question[`option_${String(letter).toLowerCase()}`] || '';
   }
 
   function optionRowHtml(question, state, letter) {
@@ -218,9 +228,11 @@
   });
 
   async function loadQuiz() {
-    const today = localDateString(new Date());
+    const today = appToday();
     try {
-      const response = await fetch(`/api/quiz?date=${today}&limit=50`);
+      // Daily Quiz session (PROJECT_SPEC §10): 10 random questions for the day,
+      // selected by the API. The UI only ever receives the session.
+      const response = await fetch(`/api/quiz?date=${today}&limit=${QUIZ_SESSION_LIMIT}&session=1`);
       if (!response.ok) throw new Error('Unable to load today\'s quiz.');
       const data = await response.json();
       questions = data.questions || [];
