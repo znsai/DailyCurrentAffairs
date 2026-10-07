@@ -360,7 +360,8 @@
   display: flex;
   align-items: stretch;
   width: min(100%, 18rem);
-  height: 2.375rem;
+  height: var(--touch-min);
+  min-height: var(--touch-min);
   box-sizing: border-box;
   box-shadow: var(--shadow-sm);
 }
@@ -369,6 +370,7 @@
   min-width: 0;
   flex: 1;
   height: 100%;
+  min-height: var(--touch-min);
   box-sizing: border-box;
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--color-border-strong);
@@ -401,6 +403,7 @@
   gap: 0.35rem;
   min-width: 4.5rem;
   height: 100%;
+  min-height: var(--touch-min);
   box-sizing: border-box;
   padding: 0 0.95rem;
   border: 1px solid var(--color-primary);
@@ -425,8 +428,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.375rem;
-  height: 2.375rem;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
   box-sizing: border-box;
   padding: 0;
   border: 1px solid var(--color-border-strong);
