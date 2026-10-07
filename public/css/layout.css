@@ -277,8 +277,8 @@
 
 .home-header-inner {
   max-width: 72rem;
-  justify-content: space-between;
   padding-block: 0.65rem;
+  flex-wrap: nowrap;
 }
 
 .home-header .brand,
@@ -307,9 +307,31 @@
   text-underline-offset: 0.2em;
 }
 
+/* 3-column home header: brand | centred nav | right search slot */
+.home-header-inner .brand {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.home-header-inner .site-nav {
+  flex: 0 0 auto;
+}
+
+.home-header-inner .site-nav ul {
+  margin-inline-start: 0;
+  flex-wrap: nowrap;
+}
+
+.header-right {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
 .home-search {
   display: flex;
-  width: min(100%, 24rem);
+  width: min(100%, 14rem);
   min-height: var(--touch-min);
 }
 
@@ -735,7 +757,7 @@
   padding: 0;
   display: flex;
   gap: 0.25rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-inline-start: auto;
 }
 
@@ -834,6 +856,7 @@
 @media (min-width: 40rem) {
   .site-header-inner {
     flex-wrap: nowrap;
+    max-width: 72rem;
   }
 
   .site-main {
@@ -881,6 +904,11 @@
 
   .home-search {
     width: 100%;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   /* <640px: the stacked editorial sections only need their gaps tightened. */
