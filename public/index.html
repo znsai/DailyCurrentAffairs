@@ -256,11 +256,13 @@
             }
         }
 
-        // Primary action: start reading today's first item (V1 Home).
+        // Primary action: open today's day-scoped Current Affairs list.
+        // Do not deep-link to the first article: the student should see the
+        // complete daily study feed before choosing an article.
         function updateStartCta(query, articles) {
             const show = !query && articles.length > 0;
             startWrap.hidden = !show;
-            if (show) startToday.href = `/current-affairs/${encodeURIComponent(articles[0].id)}`;
+            if (show) startToday.href = `/current-affairs/?date=${encodeURIComponent(appToday())}`;
         }
 
         // Today's Quiz availability (V1 Home): shown only when questions exist.
