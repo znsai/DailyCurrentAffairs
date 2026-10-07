@@ -321,7 +321,12 @@
             loadArticles(searchInput.value.trim());
         });
 
-        loadArticles();
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialQuery = urlParams.get('q') || '';
+        if (initialQuery) {
+            searchInput.value = initialQuery;
+        }
+        loadArticles(initialQuery);
         loadTodayQuiz();
     </script>
 </body>

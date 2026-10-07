@@ -311,6 +311,7 @@ async function handleSearch(url, env) {
     WHERE title ILIKE $1
        OR brief_summary ILIKE $1
        OR what_is_important ILIKE $1
+       OR to_char(date, 'YYYY-MM-DD') ILIKE $1
     ORDER BY date DESC, id DESC
     LIMIT $2 OFFSET $3
   `;
