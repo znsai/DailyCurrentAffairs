@@ -122,16 +122,6 @@
                 <p class="exam-point-text" id="exam-point-text"></p>
             </div>
 
-            <!-- Daily Quiz / MCQ for this article -->
-            <section class="article-quiz" id="article-quiz" hidden aria-labelledby="article-quiz-heading">
-                <h2 class="article-section-label" id="article-quiz-heading">Daily Quiz &middot; Quick Practice</h2>
-                <div id="article-quiz-container">
-                    <p class="quiz-question" id="article-quiz-question"></p>
-                    <ul class="quiz-options" id="article-quiz-options"></ul>
-                    <div class="quiz-feedback" id="article-quiz-feedback" role="status" hidden></div>
-                </div>
-            </section>
-
             <!-- Anonymous editorial feedback (PROJECT_SPEC §11): lightweight,
                  never dominant, no account or PII. One submission per browser. -->
             <section class="article-rating" id="article-rating" aria-labelledby="article-rating-label" hidden>
@@ -230,95 +220,6 @@
                 return host;
             } catch {
                 return 'News Source';
-            }
-        }
-
-        function renderArticleQuiz(q) {
-            const questionText = document.getElementById('article-quiz-question');
-            const optionsList = document.getElementById('article-quiz-options');
-            const feedback = document.getElementById('article-quiz-feedback');
-            if (!questionText || !optionsList || !feedback) return;
-
-            questionText.textContent = q.question;
-            const LETTERS = ['A', 'B', 'C', 'D'];
-            const correct = String(q.correct_answer || '').trim().toUpperCase();
-
-            optionsList.innerHTML = LETTERS.map((letter) => {
-                const text = q[`option_${letter.toLowerCase()}`] || '';
-                if (!text) return '';
-                return `<li>
-                    <label class="quiz-option-row">
-                        <input type="radio" name="article-quiz-choice" value="${letter}">
-                        <span class="quiz-option-text">${letter}. ${escapeHtml(text)}</span>
-                    </label>
-                </li>`;
-            }).filter(Boolean).join('');
-
-            optionsList.addEventListener('change', (e) => {
-                if (!e.target.matches('input[type="radio"]')) return;
-                const selected = e.target.value;
-                const isCorrect = selected === correct;
-
-                optionsList.querySelectorAll('input[type="radio"]').forEach((input) => {
-                    input.disabled = true;
-                    const label = input.closest('.quiz-option-row');
-                    if (label) {
-                        if (input.value === correct) label.classList.add('is-correct');
-                        else if (input.value === selected) label.classList.add('is-wrong');
-                    }
-                });
-
-                const selectedText = q[`option_${selected.toLowerCase()}`] || '';
-                const correctText = q[`option_${correct.toLowerCase()}`] || '';
-                let feedbackHtml = `
-                    <p class="quiz-verdict ${isCorrect ? 'is-correct' : 'is-wrong'}">
-                        <strong>${isCorrect ? 'Correct' : 'Incorrect'}</strong>
-                    </p>
-                    <p class="quiz-answer-line">Your answer: ${selected}. ${escapeHtml(selectedText)}</p>
-                `;
-                if (!isCorrect) {
-                    feedbackHtml += `<p class="quiz-answer-line">Correct answer: ${correct}. ${escapeHtml(correctText)}</p>`;
-                }
-                if (q.explanation) {
-                    feedbackHtml += `<p class="quiz-explanation">Explanation: ${escapeHtml(q.explanation)}</p>`;
-                }
-                feedback.innerHTML = feedbackHtml;
-                feedback.hidden = false;
-            }, { once: true });
-        }
-
-        async function loadArticleQuiz(sourceUrl, date) {
-            const quizSection = document.getElementById('article-quiz');
-            const container = document.getElementById('article-quiz-container');
-            if (!quizSection || !container) return;
-            if (!sourceUrl) {
-                container.innerHTML = `
-                    <p class="article-quiz-prompt">Reinforce today's learning with the Daily Quiz.</p>
-                    <p><a class="btn btn-secondary" href="/quiz/?date=${encodeURIComponent(date || '')}">Take Daily Quiz &rarr;</a></p>
-                `;
-                quizSection.hidden = false;
-                return;
-            }
-            try {
-                const response = await fetch(`/api/quiz/article?url=${encodeURIComponent(sourceUrl)}`);
-                if (!response.ok) throw new Error('Quiz lookup failed');
-                const data = await response.json();
-                if (data && data.question) {
-                    renderArticleQuiz(data.question);
-                    quizSection.hidden = false;
-                } else {
-                    container.innerHTML = `
-                        <p class="article-quiz-prompt">Reinforce today's learning with the Daily Quiz.</p>
-                        <p><a class="btn btn-secondary" href="/quiz/?date=${encodeURIComponent(date || '')}">Take Daily Quiz &rarr;</a></p>
-                    `;
-                    quizSection.hidden = false;
-                }
-            } catch {
-                container.innerHTML = `
-                    <p class="article-quiz-prompt">Reinforce today's learning with the Daily Quiz.</p>
-                    <p><a class="btn btn-secondary" href="/quiz/?date=${encodeURIComponent(date || '')}">Take Daily Quiz &rarr;</a></p>
-                `;
-                quizSection.hidden = false;
             }
         }
 
@@ -457,9 +358,6 @@
             } else if (sourceIcon) {
                 sourceIcon.hidden = true;
             }
-
-            // Daily Quiz for this article
-            loadArticleQuiz(data.url, data.date);
 
             // Anonymous feedback (PROJECT_SPEC §11): available once the article
             // is loaded, since the rating is tied to its id.
