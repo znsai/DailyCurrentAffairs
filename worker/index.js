@@ -28,13 +28,14 @@ const MAX_LIMIT = 200;
 // hold many questions per day, but the quiz the student takes is 10 random ones.
 const QUIZ_SESSION_SIZE = 10;
 
-function json(data, status = 200, cacheControl = "public, max-age=60, stale-while-revalidate=120") {
+function json(data, status = 200, cacheControl = "public, max-age=300, s-maxage=21600, stale-while-revalidate=86400") {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": cacheControl,
       "access-control-allow-origin": "*",
+      "X-Cache": "MISS",
     },
   });
 }
@@ -106,6 +107,30 @@ function parsePagination(url) {
   return { page, limit, offset: (page - 1) * limit };
 }
 
+/**
+ * Deterministic Cloudflare Cache Key:
+ * Normalizes query parameters alphabetically and strips tracking parameters
+ * so identical queries with different param ordering share the same edge cache entry.
+ */
+function buildCacheKey(request) {
+  const url = new URL(request.url);
+  const searchParams = new URLSearchParams();
+  const sortedKeys = Array.from(new Set(url.searchParams.keys())).sort();
+  for (const key of sortedKeys) {
+    if (!key.startsWith("utm_") && key !== "_t" && key !== "nocache") {
+      const values = url.searchParams.getAll(key);
+      for (const val of values) {
+        searchParams.append(key, val);
+      }
+    }
+  }
+  const normalizedSearch = searchParams.toString();
+  const canonicalUrl = `${url.protocol}//${url.host}${url.pathname}${normalizedSearch ? `?${normalizedSearch}` : ""}`;
+  return new Request(canonicalUrl, {
+    method: "GET",
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -122,20 +147,30 @@ export default {
       });
     }
 
-    // Cloudflare Edge Cache: Serve instant cached API responses for GET requests
+    // Cloudflare Edge Cache: Serve instant cached API responses for cacheable GET requests
     let cache = null;
-    try {
-      if (typeof caches !== "undefined" && caches.default) {
-        cache = caches.default;
-      }
-    } catch {}
+    let cacheKey = null;
+    const isSessionQuiz = url.searchParams.get("session") === "1";
+    const isCacheableApiGet = request.method === "GET"
+      && pathname.startsWith("/api/")
+      && pathname !== "/api/health"
+      && !isSessionQuiz
+      && !url.searchParams.has("nocache");
 
-    const isApiGet = request.method === "GET" && pathname.startsWith("/api/") && pathname !== "/api/health";
-    if (cache && isApiGet && !url.searchParams.has("session")) {
-      const cached = await cache.match(request);
-      if (cached) {
-        return cached;
+    try {
+      if (typeof caches !== "undefined" && caches.default && isCacheableApiGet) {
+        cache = caches.default;
+        cacheKey = buildCacheKey(request);
+        const cached = await cache.match(cacheKey);
+        if (cached) {
+          const res = new Response(cached.body, cached);
+          res.headers.set("X-Cache", "HIT");
+          res.headers.set("CF-Cache-Status", "HIT");
+          return res;
+        }
       }
+    } catch (err) {
+      console.warn("Edge cache lookup failed, falling back to database origin:", err?.message);
     }
 
     let response;
@@ -145,7 +180,7 @@ export default {
         status: "ok",
         hasDatabase: Boolean(env.DATABASE_URL),
         time: new Date().toISOString(),
-      });
+      }, 200, "no-store");
     } else if (pathname === "/api/current-affairs" && request.method === "GET") {
       response = await handleCurrentAffairs(url, env);
     } else if (pathname === "/api/search" && request.method === "GET") {
@@ -180,10 +215,14 @@ export default {
     }
 
     // Cache successful GET API responses at Cloudflare Edge
-    if (cache && ctx && ctx.waitUntil && isApiGet && response && response.status === 200 && !url.searchParams.has("session")) {
+    if (cache && cacheKey && ctx && ctx.waitUntil && isCacheableApiGet && response && response.status === 200) {
       const cc = response.headers.get("cache-control") || "";
       if (!cc.includes("no-store") && !cc.includes("no-cache")) {
-        ctx.waitUntil(cache.put(request, response.clone()));
+        try {
+          ctx.waitUntil(cache.put(cacheKey, response.clone()));
+        } catch (err) {
+          console.warn("Edge cache store failed:", err?.message);
+        }
       }
     }
 
