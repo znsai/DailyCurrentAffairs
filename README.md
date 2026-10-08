@@ -1,6 +1,6 @@
-# Daily Current Affairs
+# Top Current Affairs (topcurrentaffairs.in)
 
-A lightweight, fast, mobile-friendly current affairs website for students preparing for Indian competitive and government exams.
+A lightweight, fast, mobile-friendly current affairs platform for students preparing for Indian competitive and government exams (UPSC, SSC, RRB, Banking, TNPSC, State PSC, Defence).
 
 ## Architecture
 

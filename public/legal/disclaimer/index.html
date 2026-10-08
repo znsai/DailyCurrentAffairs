@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disclaimer — Daily Current Affairs</title>
+    <title>Disclaimer — Top Current Affairs</title>
     <meta name="description"
         content="Educational resource disclaimer. This platform is not an official government source.">
     <meta name="robots" content="noindex">
+    <link rel="canonical" href="https://topcurrentaffairs.in/legal/disclaimer/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -17,14 +18,15 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
+    <script src="/js/theme.js"></script>
 </head>
 
 <body>
     <a class="skip-link" href="#main">Skip to main content</a>
     <header class="site-header">
         <div class="site-header-inner">
-            <a class="brand" href="/" aria-label="Daily Current Affairs — home">
-                <span>Daily Current Affairs<small>UPSC · SSC · Banking · State PSC</small></span>
+            <a class="brand" href="/" aria-label="Top Current Affairs">
+                <img src="/images/logo-horizontal.svg" alt="Top Current Affairs" class="brand-logo" width="220" height="36">
             </a>
             <nav class="site-nav" aria-label="Primary">
                 <ul>
@@ -34,6 +36,36 @@
                     <li><a href="/quiz/">Daily Quiz</a></li>
                 </ul>
             </nav>
+            <div class="header-right">
+                <form class="home-search" action="/" method="GET" role="search">
+                    <label class="visually-hidden" for="search-query">Search current affairs</label>
+                    <input id="search-query" name="q" type="search" placeholder="Search topics, schemes..."
+                        autocomplete="off">
+                    <button type="submit" aria-label="Search">
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="8.5" cy="8.5" r="5.5"/>
+                            <line x1="13" y1="13" x2="18" y2="18"/>
+                        </svg>
+                        <span>Search</span>
+                    </button>
+                </form>
+                <button class="theme-toggle" type="button" aria-label="Toggle light/dark mode" title="Toggle theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
     <main class="site-main reading-width" id="main">
@@ -55,7 +87,7 @@
     </nav>
     <footer class="site-footer">
         <div class="site-footer-inner">
-            <p>Daily Current Affairs &middot; Built for students</p>
+            <p>Top Current Affairs &middot; Built for students</p>
             <nav aria-label="Legal">
                 <ul>
                     <li><a href="/legal/privacy-policy/">Privacy</a></li>

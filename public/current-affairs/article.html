@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Current Affairs Article — Daily Current Affairs</title>
+    <title>Current Affairs Article — Top Current Affairs</title>
     <meta name="description" content="Read the full current affairs article with exam point">
-    <link rel="canonical" href="/current-affairs/">
+    <link rel="canonical" href="https://topcurrentaffairs.in/current-affairs/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap" rel="stylesheet">
@@ -21,8 +21,8 @@
     <a class="skip-link" href="#main">Skip to main content</a>
     <header class="site-header">
         <div class="site-header-inner">
-            <a class="brand" href="/" aria-label="topcurrentaffairs.in — Daily Current Affairs">
-                <img src="/images/logo-horizontal.svg" alt="topcurrentaffairs.in - Daily Current Affairs" class="brand-logo" width="220" height="36">
+            <a class="brand" href="/" aria-label="topcurrentaffairs.in — Top Current Affairs">
+                <img src="/images/logo-horizontal.svg" alt="topcurrentaffairs.in - Top Current Affairs" class="brand-logo" width="220" height="36">
             </a>
             <nav class="site-nav" aria-label="Primary">
                 <ul>
@@ -133,9 +133,15 @@
             </section>
 
             <div class="article-actions" aria-label="Article actions">
+                <a href="#" class="btn btn-secondary" id="prev-article" hidden aria-label="Previous article on this day">
+                    &larr; Previous
+                </a>
                 <a href="/current-affairs/" class="btn btn-secondary" id="back-to-day"
                     aria-label="Back to current affairs list">
                     Back to Current Affairs
+                </a>
+                <a href="#" class="btn btn-secondary" id="next-article" hidden aria-label="Next article on this day">
+                    Next &rarr;
                 </a>
                 <a href="#" class="btn btn-secondary" id="article-source" target="_blank" rel="noopener noreferrer"
                     hidden>
@@ -154,7 +160,7 @@
     </nav>
     <footer class="site-footer">
         <div class="site-footer-inner">
-            <p>Daily Current Affairs &middot; Built for students</p>
+            <p>Top Current Affairs &middot; Built for students</p>
             <nav aria-label="Legal">
                 <ul>
                     <li><a href="/legal/privacy-policy/">Privacy</a></li>
@@ -194,6 +200,9 @@
 
             document.getElementById('article-date').textContent = date || '';
             document.getElementById('article-title').textContent = data.title || 'Untitled';
+            if (data.title) {
+                document.title = `${data.title} — Top Current Affairs`;
+            }
             document.getElementById('article-subject').textContent = subject ? `(${subject})` : '';
             document.getElementById('article-published').setAttribute('datetime', data.created_at || '');
             document.getElementById('article-published').textContent = published || '';
@@ -202,6 +211,25 @@
             if (data.date) {
                 document.getElementById('back-to-day').href =
                     `/current-affairs/?date=${encodeURIComponent(data.date)}`;
+            }
+
+            // Same-day previous & next article navigation
+            const prevBtn = document.getElementById('prev-article');
+            if (data.prev_article && data.prev_article.public_id) {
+                prevBtn.href = `/current-affairs/${encodeURIComponent(data.prev_article.public_id)}`;
+                prevBtn.title = data.prev_article.title || 'Previous article';
+                prevBtn.hidden = false;
+            } else {
+                prevBtn.hidden = true;
+            }
+
+            const nextBtn = document.getElementById('next-article');
+            if (data.next_article && data.next_article.public_id) {
+                nextBtn.href = `/current-affairs/${encodeURIComponent(data.next_article.public_id)}`;
+                nextBtn.title = data.next_article.title || 'Next article';
+                nextBtn.hidden = false;
+            } else {
+                nextBtn.hidden = true;
             }
 
             // Article content

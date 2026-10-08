@@ -28,18 +28,19 @@ const MAX_LIMIT = 200;
 // hold many questions per day, but the quiz the student takes is 10 random ones.
 const QUIZ_SESSION_SIZE = 10;
 
-function json(data, status = 200) {
+function json(data, status = 200, cacheControl = "public, max-age=60, stale-while-revalidate=120") {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "public, max-age=60",
+      "cache-control": cacheControl,
+      "access-control-allow-origin": "*",
     },
   });
 }
 
 function errorResponse(message, status = 400) {
-  return json({ error: message }, status);
+  return json({ error: message }, status, "no-store");
 }
 
 /** Canonical application date (Asia/Kolkata) for server-side defaults.
@@ -266,7 +267,11 @@ async function handleArticle(ref, env) {
 
   const sql = `
     SELECT id, to_char(date, 'YYYY-MM-DD') AS date, title, url, subject, brief_summary, what_is_important, created_at,
-           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz
+           EXISTS (SELECT 1 FROM quizzes q WHERE q.url = current_affairs.url) AS has_quiz,
+           (SELECT id FROM current_affairs prev WHERE prev.date = current_affairs.date AND prev.id > current_affairs.id ORDER BY prev.id ASC LIMIT 1) AS prev_id,
+           (SELECT title FROM current_affairs prev WHERE prev.date = current_affairs.date AND prev.id > current_affairs.id ORDER BY prev.id ASC LIMIT 1) AS prev_title,
+           (SELECT id FROM current_affairs next WHERE next.date = current_affairs.date AND next.id < current_affairs.id ORDER BY next.id DESC LIMIT 1) AS next_id,
+           (SELECT title FROM current_affairs next WHERE next.date = current_affairs.date AND next.id < current_affairs.id ORDER BY next.id DESC LIMIT 1) AS next_title
     FROM current_affairs
     WHERE id = $1
   `;
@@ -276,8 +281,15 @@ async function handleArticle(ref, env) {
     if (rows.length === 0) {
       return errorResponse("Article not found", 404);
     }
-    const { id: internalId, ...article } = rows[0];
-    return json({ ...article, public_id: articleRefFromId(internalId) });
+    const { id: internalId, prev_id, prev_title, next_id, next_title, ...article } = rows[0];
+    const prev_article = prev_id ? { public_id: articleRefFromId(prev_id), title: prev_title } : null;
+    const next_article = next_id ? { public_id: articleRefFromId(next_id), title: next_title } : null;
+    return json({
+      ...article,
+      public_id: articleRefFromId(internalId),
+      prev_article,
+      next_article,
+    }, 200, "public, max-age=300, stale-while-revalidate=600");
   } catch (err) {
     console.error("article query failed:", err);
     return errorResponse("Database query failed", 500);
@@ -378,7 +390,11 @@ async function handleQuizList(url, env) {
 
   try {
     const rows = await query(env.DATABASE_URL, sql, params);
-    return json({ date, page, limit, count: rows.length, questions: rows });
+    return json(
+      { date, page, limit, count: rows.length, questions: rows },
+      200,
+      isSession ? "no-cache, no-store, must-revalidate" : "public, max-age=60, stale-while-revalidate=120"
+    );
   } catch (err) {
     console.error("quiz query failed:", err);
     return errorResponse("Database query failed", 500);
@@ -414,7 +430,7 @@ async function handleQuizForArticle(url, env) {
 
   try {
     const rows = await query(env.DATABASE_URL, sql, [target]);
-    return json({ question: rows[0] ?? null });
+    return json({ question: rows[0] ?? null }, 200, "public, max-age=300, stale-while-revalidate=600");
   } catch (err) {
     console.error("quiz article lookup failed:", err);
     return errorResponse("Database query failed", 500);
@@ -459,7 +475,7 @@ async function handleArchive(url, env) {
     return json({
       month,
       days: rows.map((row) => ({ date: row.date, count: Number(row.count) })),
-    });
+    }, 200, "public, max-age=300, stale-while-revalidate=600");
   } catch (err) {
     console.error("archive query failed:", err);
     return errorResponse("Database query failed", 500);
@@ -520,7 +536,7 @@ async function handleArticleRating(request, env) {
        RETURNING id`,
       [articleId, anonymousId, rating]
     );
-    return json({ ok: true, stored: rows.length === 1 });
+    return json({ ok: true, stored: rows.length === 1 }, 200, "no-store");
   } catch (err) {
     // Ratings remain optional until the separately-reviewed migration is
     // applied. Do not let unavailable feedback break article study.

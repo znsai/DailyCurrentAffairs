@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Current Affairs — Daily Current Affairs</title>
+    <title>Current Affairs — Top Current Affairs</title>
     <meta name="description" content="Browse daily current affairs by date and subject">
-    <link rel="canonical" href="/current-affairs/">
+    <link rel="canonical" href="https://topcurrentaffairs.in/current-affairs/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sanchez&display=swap" rel="stylesheet">
@@ -21,8 +21,8 @@
     <a class="skip-link" href="#main">Skip to main content</a>
     <header class="site-header">
         <div class="site-header-inner">
-            <a class="brand" href="/" aria-label="topcurrentaffairs.in — Daily Current Affairs">
-                <img src="/images/logo-horizontal.svg" alt="topcurrentaffairs.in - Daily Current Affairs" class="brand-logo" width="220" height="36">
+            <a class="brand" href="/" aria-label="Top Current Affairs">
+                <img src="/images/logo-horizontal.svg" alt="Top Current Affairs" class="brand-logo" width="220" height="36">
             </a>
             <nav class="site-nav" aria-label="Primary">
                 <ul>
@@ -138,7 +138,7 @@
     </nav>
     <footer class="site-footer">
         <div class="site-footer-inner">
-            <p>Daily Current Affairs &middot; Built for students</p>
+            <p>Top Current Affairs &middot; Built for students</p>
             <nav aria-label="Legal">
                 <ul>
                     <li><a href="/legal/privacy-policy/">Privacy</a></li>
@@ -253,11 +253,12 @@
                 renderArticles(articles);
                 articleCount.textContent = String(total);
                 updatePager(total, articles.length);
-                // Start Today's Study stays at the day-scoped Current Affairs
-                // list. Students should see all articles first and choose the
-                // article they want to read; the individual article route is
-                // reserved for explicit article selections.
-                startDay.href = buildPageUrl({ date: selectedDate, subject: selectedSubject, page: 1 });
+                // Start Today's Study: link directly to the first article on this day
+                // if available, otherwise stay on the day page.
+                const firstId = articles[0]?.public_id;
+                startDay.href = firstId
+                    ? `/current-affairs/${encodeURIComponent(firstId)}`
+                    : buildPageUrl({ date: selectedDate, subject: selectedSubject, page: 1 });
                 startDayWrap.hidden = articles.length === 0;
                 if (articles.length === 0) {
                     emptyState.textContent = total > 0
@@ -337,7 +338,7 @@
             if (selectedDate) {
                 const heading = formatDayHeading(selectedDate);
                 selectedDay.textContent = heading;
-                document.title = `Current Affairs for ${heading} — Daily Current Affairs`;
+                document.title = `Current Affairs for ${heading} — Top Current Affairs`;
                 document.querySelector('link[rel="canonical"]').href =
                     window.location.pathname + window.location.search;
                 backToday.hidden = selectedDate === appToday();
