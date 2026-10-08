@@ -303,17 +303,11 @@
             }
         }
 
-        // Primary action: open first article of today's study feed if available,
-        // otherwise fall back to today's day-scoped Current Affairs list.
+        // Primary action: open today's day-scoped Current Affairs list.
         function updateStartCta(query, articles) {
             const show = !query && articles.length > 0;
             startWrap.hidden = !show;
-            if (show) {
-                const firstId = articles[0]?.public_id;
-                startToday.href = firstId
-                    ? `/current-affairs/${encodeURIComponent(firstId)}`
-                    : `/current-affairs/?date=${encodeURIComponent(appToday())}`;
-            }
+            if (show) startToday.href = `/current-affairs/?date=${encodeURIComponent(appToday())}`;
         }
 
         // Today's Quiz availability (V1 Home): shown only when questions exist.

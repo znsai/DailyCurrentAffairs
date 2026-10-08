@@ -253,12 +253,8 @@
                 renderArticles(articles);
                 articleCount.textContent = String(total);
                 updatePager(total, articles.length);
-                // Start Today's Study: link directly to the first article on this day
-                // if available, otherwise stay on the day page.
-                const firstId = articles[0]?.public_id;
-                startDay.href = firstId
-                    ? `/current-affairs/${encodeURIComponent(firstId)}`
-                    : buildPageUrl({ date: selectedDate, subject: selectedSubject, page: 1 });
+                // Start Today's Study stays at the day-scoped Current Affairs list.
+                startDay.href = buildPageUrl({ date: selectedDate, subject: selectedSubject, page: 1 });
                 startDayWrap.hidden = articles.length === 0;
                 if (articles.length === 0) {
                     emptyState.textContent = total > 0
@@ -291,9 +287,8 @@
             }).format(new Date(dateString));
         }
 
-        // Render article items as study cards (V1): subject + date, title,
-        // summary, exam point, source and a Test Yourself action only when a
-        // question exists for the article.
+        // Render article items as study cards: subject + date, title,
+        // summary, exam point, and source.
         function renderArticles(articles) {
             if (articles.length === 0) {
                 emptyState.style.display = 'block';
@@ -314,14 +309,8 @@
                         <p>${escapeHtml(article.what_is_important)}</p>
                     </div>`
                     : '';
-                const source = article.url
-                    ? `<a class="article-source" href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer">Read original source<span class="sr-only"> (opens in a new tab)</span></a>`
-                    : '';
-                const testYourself = article.has_quiz
-                    ? `<a class="btn btn-secondary" href="/current-affairs/${id}#test-yourself">Test Yourself</a>`
-                    : '';
-                const actions = (source || testYourself)
-                    ? `<p class="article-item-actions">${source}${testYourself}</p>`
+                const actions = article.url
+                    ? `<p class="article-item-actions"><a class="article-source" href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer">Read original source<span class="sr-only"> (opens in a new tab)</span></a></p>`
                     : '';
                 return `<li class="article-item">
                     <p class="study-eyebrow">${subject} <span class="study-date">${date}</span></p>

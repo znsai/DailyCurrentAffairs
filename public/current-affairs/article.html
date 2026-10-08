@@ -118,19 +118,6 @@
                     saved. Please try again later.</p>
             </section>
 
-            <!-- Active recall: revealed only when an associated question exists (V1).
-                 Answer and explanation stay hidden until the student asks for them. -->
-            <section class="test-yourself" id="test-yourself" aria-labelledby="test-yourself-label" hidden>
-                <p class="exam-point-title" id="test-yourself-label">TEST YOURSELF</p>
-                <p class="test-yourself-question" id="test-yourself-question"></p>
-                <button type="button" class="btn btn-secondary" id="test-yourself-reveal" aria-expanded="false"
-                    aria-controls="test-yourself-answer">Reveal answer</button>
-                <div class="test-yourself-answer" id="test-yourself-answer" role="status" hidden>
-                    <p class="test-yourself-correct"><strong id="test-yourself-correct"></strong></p>
-                    <p class="test-yourself-explanation" id="test-yourself-explanation"></p>
-                </div>
-                <p class="test-yourself-more"><a href="/quiz/">Continue to Daily Quiz</a></p>
-            </section>
 
             <div class="article-actions" aria-label="Article actions">
                 <a href="#" class="btn btn-secondary" id="prev-article" hidden aria-label="Previous article on this day">
@@ -259,46 +246,9 @@
                 sourceLink.hidden = false;
             }
 
-            // Active recall: shown only when an associated question exists (V1).
-            if (data.url) loadTestYourself(data.url);
-
             // Anonymous feedback (PROJECT_SPEC §11): available once the article
             // is loaded, since the rating is tied to its id.
             initArticleRating(data.public_id);
-        }
-
-        // Test Yourself: look up the question associated with this article's
-        // source URL. The correct answer and explanation are only written to
-        // the page when the student presses "Reveal answer".
-        async function loadTestYourself(url) {
-            try {
-                const response = await fetch(`/api/quiz/article?url=${encodeURIComponent(url)}`);
-                if (!response.ok) return;
-                const data = await response.json();
-                const question = data.question;
-                if (!question || !question.question) return;
-
-                document.getElementById('test-yourself-question').textContent = question.question;
-                const section = document.getElementById('test-yourself');
-                section.hidden = false;
-                if (window.location.hash === '#test-yourself') section.scrollIntoView();
-
-                const reveal = document.getElementById('test-yourself-reveal');
-                reveal.addEventListener('click', () => {
-                    const letter = String(question.correct_answer || '').trim().toUpperCase();
-                    const optionText = question[`option_${letter.toLowerCase()}`] || '';
-                    document.getElementById('test-yourself-correct').textContent =
-                        `Correct answer: ${letter}. ${optionText}`.trim();
-                    const explanation = document.getElementById('test-yourself-explanation');
-                    explanation.textContent = question.explanation ? `Explanation: ${question.explanation}` : '';
-                    explanation.hidden = !question.explanation;
-                    document.getElementById('test-yourself-answer').hidden = false;
-                    reveal.setAttribute('aria-expanded', 'true');
-                    reveal.hidden = true;
-                }, { once: true });
-            } catch (error) {
-                // Recall is optional: stay silent when the lookup fails.
-            }
         }
 
         // Anonymous article rating (PROJECT_SPEC §11). No account or PII:
