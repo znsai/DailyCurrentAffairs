@@ -87,21 +87,47 @@
     </header>
     <main class="site-main archive-shell" id="main">
         <div class="archive-layout">
-            <aside class="archive-sidebar">
-                <p class="archive-kicker">Daily view</p>
-                <h1>Current Affairs</h1>
-                <p class="archive-day" id="selected-day"></p>
-                <div class="archive-stat">
-                    <span>Articles</span>
-                    <strong id="article-count">0</strong>
+            <aside class="archive-sidebar study-sidebar">
+                <!-- Top Navigation: Back to Archive & Previous/Next Day stepper -->
+                <nav class="study-nav-top" aria-label="Day navigation">
+                    <a class="nav-back-link" href="/archive/">
+                        <span aria-hidden="true">&larr;</span> Archive
+                    </a>
+                    <div class="date-stepper" id="date-stepper" aria-label="Step through days">
+                        <a class="date-step-link" id="prev-day-link" href="#" title="Previous day">
+                            <span aria-hidden="true">&larr;</span> <span id="prev-day-label">Prev Day</span>
+                        </a>
+                        <span class="date-step-sep" id="date-step-sep" aria-hidden="true">&middot;</span>
+                        <a class="date-step-link" id="next-day-link" href="#" title="Next day">
+                            <span id="next-day-label">Next Day</span> <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                </nav>
+
+                <div class="study-day-hero">
+                    <p class="study-day-kicker" id="study-day-kicker">Current Affairs</p>
+                    <h1 class="study-day-heading" id="selected-day"></h1>
+                    <div class="study-day-meta">
+                        <span class="badge"><strong id="article-count">0</strong> Articles</span>
+                        <span class="study-date-status" id="study-date-status">Published briefings</span>
+                    </div>
                 </div>
-                <p class="archive-note">Pick another day in the <a href="/archive/">Archive</a>.</p>
-                <p class="archive-note"><a id="day-quiz-link" href="/quiz/">Take this day&rsquo;s Daily Quiz &rarr;</a></p>
-                <p class="archive-note"><a id="back-today" href="/current-affairs/" hidden>Back to today</a></p>
-                <p class="archive-start-wrap" id="start-day-wrap" hidden>
-                    <a class="btn btn-primary" id="start-day" href="/current-affairs/">Start Today&rsquo;s Study
-                        &rarr;</a>
+
+                <!-- Structured Actions: Start Study (Primary) + Daily Quiz (Secondary) -->
+                <div class="study-day-actions">
+                    <p class="archive-start-wrap" id="start-day-wrap" style="margin:0;">
+                        <a class="btn btn-primary btn-block" id="start-day" href="#article-list">Start Today&rsquo;s Study &rarr;</a>
+                    </p>
+                    <a class="btn btn-secondary btn-block" id="day-quiz-link" href="/quiz/">Daily Quiz &rarr;</a>
+                </div>
+
+                <!-- Back to today (quiet secondary navigation, visible only when viewing another day) -->
+                <p class="study-back-today-wrap" id="back-today-wrap" hidden>
+                    <a class="nav-back-link" id="back-today" href="/current-affairs/">
+                        <span aria-hidden="true">&larr;</span> Back to Today&rsquo;s Current Affairs
+                    </a>
                 </p>
+
                 <div class="ruled archive-day-note">
                     <p id="archive-day-intro">Every published item for this day, newest first.</p>
                 </div>
@@ -344,8 +370,50 @@
             }).join('');
         }
 
+        function shiftDay(dateString, deltaDays) {
+            const [y, m, d] = dateString.split('-').map(Number);
+            const dateObj = new Date(Date.UTC(y, m - 1, d + deltaDays));
+            const sy = dateObj.getUTCFullYear();
+            const sm = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+            const sd = String(dateObj.getUTCDate()).padStart(2, '0');
+            return `${sy}-${sm}-${sd}`;
+        }
+
+        function formatShortDate(dateString) {
+            return new Intl.DateTimeFormat('en-IN', {
+                day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata',
+            }).format(new Date(dateString + 'T00:00:00+05:30'));
+        }
+
         // Initialize: URL-driven day view.
         (function init() {
+            const isToday = selectedDate === appToday();
+            const prevDay = shiftDay(selectedDate, -1);
+            const nextDay = shiftDay(selectedDate, 1);
+
+            const prevDayLink = document.getElementById('prev-day-link');
+            const nextDayLink = document.getElementById('next-day-link');
+            const prevDayLabel = document.getElementById('prev-day-label');
+            const nextDayLabel = document.getElementById('next-day-label');
+            const dateStepSep = document.getElementById('date-step-sep');
+
+            if (prevDayLink) {
+                prevDayLink.href = buildPageUrl({ date: prevDay, page: 1 });
+                prevDayLabel.textContent = formatShortDate(prevDay);
+            }
+
+            if (nextDayLink) {
+                if (selectedDate >= appToday()) {
+                    nextDayLink.hidden = true;
+                    if (dateStepSep) dateStepSep.hidden = true;
+                } else {
+                    nextDayLink.hidden = false;
+                    if (dateStepSep) dateStepSep.hidden = false;
+                    nextDayLink.href = buildPageUrl({ date: nextDay, page: 1 });
+                    nextDayLabel.textContent = formatShortDate(nextDay);
+                }
+            }
+
             const dayQuizLink = document.getElementById('day-quiz-link');
             if (dayQuizLink) {
                 dayQuizLink.href = `/quiz/?date=${encodeURIComponent(selectedDate || appToday())}`;
@@ -356,8 +424,15 @@
                 document.title = `Current Affairs for ${heading} — Top Current Affairs`;
                 document.querySelector('link[rel="canonical"]').href =
                     window.location.pathname + window.location.search;
-                backToday.hidden = selectedDate === appToday();
+                const backTodayWrap = document.getElementById('back-today-wrap');
+                if (backTodayWrap) {
+                    backTodayWrap.hidden = isToday;
+                }
                 backToday.href = buildPageUrl({ date: appToday() });
+                const studyDayKicker = document.getElementById('study-day-kicker');
+                if (studyDayKicker) {
+                    studyDayKicker.textContent = isToday ? "Today's Current Affairs" : "Daily Briefings";
+                }
                 document.getElementById('archive-day-intro').textContent =
                     `${heading} — every published item for this day, newest first.`;
             }

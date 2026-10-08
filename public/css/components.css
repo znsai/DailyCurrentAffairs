@@ -29,6 +29,10 @@
   display: none;
 }
 
+.btn-block {
+  width: 100%;
+}
+
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-primary-ink);

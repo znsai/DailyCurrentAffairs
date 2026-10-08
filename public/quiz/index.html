@@ -88,15 +88,31 @@
         </div>
     </header>
     <main class="site-main" id="main">
-        <h1>Daily Quiz</h1>
-        <p class="card-meta" id="quiz-date-line"></p>
-        <div class="ruled stack-md">
-            <p id="quiz-intro-text">Daily Quiz reinforces current affairs: one question at a time. Choose an answer to reveal the explanation, then continue.</p>
-        </div>
+        <nav class="quiz-nav-top" aria-label="Quiz context navigation">
+            <a class="nav-back-link" id="quiz-ca-link" href="/current-affairs/">
+                <span aria-hidden="true">&larr;</span> <span id="quiz-ca-link-label">Current Affairs</span>
+            </a>
+            <div class="quiz-nav-right">
+                <span id="quiz-back-today-wrap" hidden>
+                    <a class="nav-back-link" id="quiz-back-today" href="/quiz/">
+                        <span aria-hidden="true">&larr;</span> Today&rsquo;s Quiz
+                    </a>
+                    <span class="date-step-sep" aria-hidden="true">&middot;</span>
+                </span>
+                <a class="nav-back-link" href="/archive/?type=quiz">
+                    Quiz Archive <span aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+        </nav>
 
-        <p class="archive-note stack-md" id="quiz-archive-nav">
-            Pick another day in the <a href="/archive/?type=quiz">Quiz Archive</a>.<span id="quiz-back-today-wrap" hidden> &middot; <a id="quiz-back-today" href="/quiz/">Back to today's quiz</a></span>
-        </p>
+        <header class="quiz-header stack-md">
+            <p class="archive-kicker">Practice &amp; Recall</p>
+            <h1>Daily Quiz</h1>
+            <p class="quiz-date-meta" id="quiz-date-line"></p>
+            <div class="ruled quiz-intro-note">
+                <p id="quiz-intro-text">Daily Quiz reinforces current affairs: one question at a time. Choose an answer to reveal the explanation, then continue.</p>
+            </div>
+        </header>
 
         <div id="quiz-status" class="quiz-status stack-lg" role="status" aria-live="polite">
             <div class="demo-row">

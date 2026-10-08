@@ -229,6 +229,14 @@
   if (backTodayWrap) {
     backTodayWrap.hidden = selectedDate === appToday();
   }
+  const caLink = document.getElementById('quiz-ca-link');
+  const caLinkLabel = document.getElementById('quiz-ca-link-label');
+  if (caLink) {
+    caLink.href = `/current-affairs/?date=${encodeURIComponent(selectedDate)}`;
+  }
+  if (caLinkLabel) {
+    caLinkLabel.textContent = isCustomDate ? `${formatDateLine(selectedDate)} Current Affairs` : "Today's Current Affairs";
+  }
   const caResultLink = document.getElementById('quiz-result-ca-link');
   if (caResultLink) {
     caResultLink.href = `/current-affairs/?date=${encodeURIComponent(selectedDate)}`;

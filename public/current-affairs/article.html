@@ -86,6 +86,12 @@
         </div>
     </header>
     <main class="site-main" id="main">
+        <nav class="article-top-nav" aria-label="Return to day view">
+            <a class="nav-back-link" id="article-top-back" href="/current-affairs/">
+                <span aria-hidden="true">&larr;</span> <span id="article-top-back-label">Current Affairs</span>
+            </a>
+        </nav>
+
         <article class="article-page">
             <div class="article-header">
                 <p class="article-date" id="article-date"></p>
@@ -139,23 +145,28 @@
                     saved. Please try again later.</p>
             </section>
 
-
-            <div class="article-actions" aria-label="Article actions">
-                <a href="#" class="btn btn-secondary" id="prev-article" hidden aria-label="Previous article on this day">
-                    &larr; Previous
-                </a>
-                <a href="/current-affairs/" class="btn btn-secondary" id="back-to-day"
-                    aria-label="Back to current affairs list">
-                    Back to Current Affairs
-                </a>
-                <a href="#" class="btn btn-secondary" id="next-article" hidden aria-label="Next article on this day">
-                    Next &rarr;
-                </a>
-                <a href="#" class="btn btn-secondary" id="article-source" target="_blank" rel="noopener noreferrer"
-                    hidden>
-                    Read original source<span class="sr-only"> (opens in a new tab)</span>
-                </a>
-            </div>
+            <!-- Bottom Editorial Navigation Bar: Prev / Day Overview / Next -->
+            <nav class="article-nav-bar" aria-label="Adjacent articles">
+                <div class="article-nav-adjacent">
+                    <a href="#" class="article-nav-link prev" id="prev-article" hidden aria-label="Previous article on this day">
+                        <span class="nav-direction"><span aria-hidden="true">&larr;</span> Previous Briefing</span>
+                        <span class="nav-title" id="prev-article-title"></span>
+                    </a>
+                    <a href="/current-affairs/" class="article-nav-link day-index" id="back-to-day" aria-label="Back to current affairs list">
+                        <span class="nav-direction">Selected Day</span>
+                        <span class="nav-title" id="back-to-day-title">All Articles</span>
+                    </a>
+                    <a href="#" class="article-nav-link next" id="next-article" hidden aria-label="Next article on this day">
+                        <span class="nav-direction">Next Briefing <span aria-hidden="true">&rarr;</span></span>
+                        <span class="nav-title" id="next-article-title"></span>
+                    </a>
+                </div>
+                <p class="article-source-wrap" id="article-source-wrap" hidden>
+                    <a class="article-source-link" id="article-source" href="#" target="_blank" rel="noopener noreferrer">
+                        Read original source <span aria-hidden="true">&nearr;</span><span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                </p>
+            </nav>
         </article>
     </main>
     <nav class="mobile-nav" aria-label="Primary mobile">
@@ -217,24 +228,44 @@
 
             // Back link returns to the article's day, never a mixed feed (Phase 4).
             if (data.date) {
-                document.getElementById('back-to-day').href =
-                    `/current-affairs/?date=${encodeURIComponent(data.date)}`;
+                const dateParam = encodeURIComponent(data.date);
+                const formattedDay = new Intl.DateTimeFormat('en-IN', {
+                    day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata',
+                }).format(new Date(data.date + 'T00:00:00+05:30'));
+                
+                const topBack = document.getElementById('article-top-back');
+                const topBackLabel = document.getElementById('article-top-back-label');
+                if (topBack && topBackLabel) {
+                    topBack.href = `/current-affairs/?date=${dateParam}`;
+                    topBackLabel.textContent = `${formattedDay} Current Affairs`;
+                }
+
+                const backToDay = document.getElementById('back-to-day');
+                const backToDayTitle = document.getElementById('back-to-day-title');
+                if (backToDay) {
+                    backToDay.href = `/current-affairs/?date=${dateParam}`;
+                }
+                if (backToDayTitle) {
+                    backToDayTitle.textContent = `${formattedDay} Overview`;
+                }
             }
 
             // Same-day previous & next article navigation
             const prevBtn = document.getElementById('prev-article');
+            const prevTitle = document.getElementById('prev-article-title');
             if (data.prev_article && data.prev_article.public_id) {
                 prevBtn.href = `/current-affairs/${encodeURIComponent(data.prev_article.public_id)}`;
-                prevBtn.title = data.prev_article.title || 'Previous article';
+                if (prevTitle) prevTitle.textContent = data.prev_article.title || 'Previous briefing';
                 prevBtn.hidden = false;
             } else {
                 prevBtn.hidden = true;
             }
 
             const nextBtn = document.getElementById('next-article');
+            const nextTitle = document.getElementById('next-article-title');
             if (data.next_article && data.next_article.public_id) {
                 nextBtn.href = `/current-affairs/${encodeURIComponent(data.next_article.public_id)}`;
-                nextBtn.title = data.next_article.title || 'Next article';
+                if (nextTitle) nextTitle.textContent = data.next_article.title || 'Next briefing';
                 nextBtn.hidden = false;
             } else {
                 nextBtn.hidden = true;
@@ -262,9 +293,12 @@
 
             // Original source (V1): the fetched url is finally surfaced.
             const sourceLink = document.getElementById('article-source');
+            const sourceWrap = document.getElementById('article-source-wrap');
             if (data.url) {
                 sourceLink.href = data.url;
-                sourceLink.hidden = false;
+                if (sourceWrap) sourceWrap.hidden = false;
+            } else if (sourceWrap) {
+                sourceWrap.hidden = true;
             }
 
             // Anonymous feedback (PROJECT_SPEC §11): available once the article
