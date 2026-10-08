@@ -504,10 +504,16 @@
 
 .quiz-options .quiz-option-row.is-correct .quiz-option-text {
   font-weight: 700;
+  color: var(--color-success);
 }
 
-.quiz-option-row:has(input:checked).is-wrong {
-  border-bottom-color: var(--color-danger);
+.quiz-options .quiz-option-row.is-wrong {
+  border-bottom: 2px solid var(--color-danger);
+}
+
+.quiz-options .quiz-option-row.is-wrong .quiz-option-text {
+  font-weight: 700;
+  color: var(--color-danger);
 }
 
 /* Mobile paging: one card per view with a short slide/fade on change.

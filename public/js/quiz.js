@@ -13,8 +13,6 @@
   const statusRegion = document.getElementById('quiz-status');
   const dateLine = document.getElementById('quiz-date-line');
   const session = document.getElementById('quiz-session');
-  const toolbar = document.getElementById('quiz-toolbar');
-  const checkButton = document.getElementById('quiz-check');
   const feedback = document.getElementById('quiz-feedback');
   const prevButton = document.getElementById('quiz-prev');
   const nextButton = document.getElementById('quiz-next');
@@ -125,8 +123,6 @@
       feedback.innerHTML = '';
       feedback.hidden = true;
     }
-    toolbar.hidden = state.checked;
-    checkButton.disabled = !state.selected;
     updateControls();
   }
 
@@ -146,7 +142,6 @@
     });
     feedback.hidden = false;
     feedback.innerHTML = state.feedbackHtml;
-    toolbar.hidden = true;
     updateControls();
     nextButton.focus();
   }
@@ -198,10 +193,8 @@
   stage.addEventListener('change', (event) => {
     if (!event.target.matches('input[type="radio"]')) return;
     states[index].selected = event.target.value;
-    checkButton.disabled = false;
+    checkAnswer();
   });
-
-  checkButton.addEventListener('click', checkAnswer);
 
   prevButton.addEventListener('click', () => {
     if (index > 0) {
