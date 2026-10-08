@@ -933,28 +933,6 @@
   }
 }
 
-/* Dark mode SVG logo adaptivity */
-:root[data-theme="dark"] .brand-logo g[fill="#153e43"],
-:root[data-theme="dark"] .brand-logo text[fill="#153e43"],
-:root[data-theme="dark"] .brand-logo tspan[fill="#153e43"] {
-  fill: var(--color-text);
-}
-
-:root[data-theme="dark"] .brand-logo text[fill="#647779"] {
-  fill: var(--color-muted);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .brand-logo g[fill="#153e43"],
-  :root:not([data-theme="light"]) .brand-logo text[fill="#153e43"],
-  :root:not([data-theme="light"]) .brand-logo tspan[fill="#153e43"] {
-    fill: var(--color-text);
-  }
-  :root:not([data-theme="light"]) .brand-logo text[fill="#647779"] {
-    fill: var(--color-muted);
-  }
-}
-
 /* Desktop / tablet primary nav */
 .site-nav ul {
   list-style: none;
