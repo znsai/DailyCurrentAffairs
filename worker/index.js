@@ -163,7 +163,11 @@ export default {
         cacheKey = buildCacheKey(request);
         const cached = await cache.match(cacheKey);
         if (cached) {
-          const res = new Response(cached.body, cached);
+          const res = new Response(cached.body, {
+            status: cached.status,
+            statusText: cached.statusText,
+            headers: new Headers(cached.headers),
+          });
           res.headers.set("X-Cache", "HIT");
           res.headers.set("CF-Cache-Status", "HIT");
           return res;
@@ -215,7 +219,7 @@ export default {
     }
 
     // Cache successful GET API responses at Cloudflare Edge
-    if (cache && cacheKey && ctx && ctx.waitUntil && isCacheableApiGet && response && response.status === 200) {
+    if (cache && cacheKey && ctx && typeof ctx.waitUntil === "function" && isCacheableApiGet && response && response.status === 200) {
       const cc = response.headers.get("cache-control") || "";
       if (!cc.includes("no-store") && !cc.includes("no-cache")) {
         try {
@@ -604,44 +608,22 @@ async function handleArticleRating(request, env) {
 }
 
 /**
- * Postgres query helper using node-postgres with connection pool reuse.
- * Cloudflare Workers support nodejs_compat for the `pg` driver.
- * Reusing a pool across requests within the same warm worker isolate avoids
- * repeating the 150ms-400ms TCP + TLS handshake on every query.
+ * Postgres query helper using node-postgres over TCP.
+ * In Cloudflare Workers (nodejs_compat), each fetch request connects a Client
+ * and cleanly closes it in a finally block to respect the worker request lifecycle.
  */
-let pool = null;
-let currentDbUrl = null;
-
 async function query(databaseUrl, sql, params) {
-  const { Pool } = await import("pg");
-  if (!pool || currentDbUrl !== databaseUrl) {
-    currentDbUrl = databaseUrl;
-    pool = new Pool({
-      connectionString: databaseUrl,
-      ssl: { rejectUnauthorized: false },
-      max: 4,
-      idleTimeoutMillis: 15000,
-      connectionTimeoutMillis: 5000,
-    });
-  }
+  const { Client } = await import("pg");
+  const client = new Client({
+    connectionString: databaseUrl,
+    ssl: { rejectUnauthorized: false },
+  });
+  await client.connect();
   try {
-    const result = await pool.query(sql, params);
+    const result = await client.query(sql, params);
     return result.rows;
-  } catch (err) {
-    console.warn("Pool query reset and retry:", err?.message);
-    try {
-      pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: { rejectUnauthorized: false },
-        max: 4,
-        idleTimeoutMillis: 15000,
-        connectionTimeoutMillis: 5000,
-      });
-      const retryResult = await pool.query(sql, params);
-      return retryResult.rows;
-    } catch (retryErr) {
-      console.error("Database query retry failed:", retryErr);
-      throw retryErr;
-    }
+  } finally {
+    await client.end().catch(() => {});
   }
 }
+
