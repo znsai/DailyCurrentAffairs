@@ -93,15 +93,14 @@
         </nav>
 
         <article class="article-page">
-            <div class="article-header">
-                <p class="article-date" id="article-date"></p>
+            <header class="article-header">
+                <div class="article-eyebrow">
+                    <span class="article-date" id="article-date"></span>
+                    <span class="date-step-sep" id="article-date-sep" aria-hidden="true">&middot;</span>
+                    <span class="article-subject" id="article-subject"></span>
+                </div>
                 <h1 class="article-title" id="article-title"></h1>
-            </div>
-
-            <div class="article-meta">
-                <span class="article-subject" id="article-subject"></span>
-                <time datetime="" class="article-published" id="article-published"></time>
-            </div>
+            </header>
 
             <h2 class="article-section-label">Quick Summary</h2>
             <div class="article-content ruled" id="article-content">
@@ -112,6 +111,16 @@
                 <h3 class="exam-point-title"><span aria-hidden="true">⭐ </span>EXAM POINT</h3>
                 <p class="exam-point-text" id="exam-point-text"></p>
             </div>
+
+            <!-- Daily Quiz / MCQ for this article -->
+            <section class="article-quiz" id="article-quiz" hidden aria-labelledby="article-quiz-heading">
+                <h2 class="article-section-label" id="article-quiz-heading">Daily Quiz &middot; Quick Practice</h2>
+                <div id="article-quiz-container">
+                    <p class="quiz-question" id="article-quiz-question"></p>
+                    <ul class="quiz-options" id="article-quiz-options"></ul>
+                    <div class="quiz-feedback" id="article-quiz-feedback" role="status" hidden></div>
+                </div>
+            </section>
 
             <!-- Anonymous editorial feedback (PROJECT_SPEC §11): lightweight,
                  never dominant, no account or PII. One submission per browser. -->
@@ -145,6 +154,15 @@
                     saved. Please try again later.</p>
             </section>
 
+            <!-- Source attribution -->
+            <div class="article-source-box" id="article-source-wrap" hidden>
+                <span class="article-source-label" id="article-source-name">Source: The Hindu</span>
+                <span class="date-step-sep" aria-hidden="true">&middot;</span>
+                <a class="article-source-link" id="article-source" href="#" target="_blank" rel="noopener noreferrer">
+                    Read original source <span aria-hidden="true">&nearr;</span><span class="sr-only"> (opens in a new tab)</span>
+                </a>
+            </div>
+
             <!-- Bottom Editorial Navigation Bar: Prev / Day Overview / Next -->
             <nav class="article-nav-bar" aria-label="Adjacent articles">
                 <div class="article-nav-adjacent">
@@ -161,11 +179,6 @@
                         <span class="nav-title" id="next-article-title"></span>
                     </a>
                 </div>
-                <p class="article-source-wrap" id="article-source-wrap" hidden>
-                    <a class="article-source-link" id="article-source" href="#" target="_blank" rel="noopener noreferrer">
-                        Read original source <span aria-hidden="true">&nearr;</span><span class="sr-only"> (opens in a new tab)</span>
-                    </a>
-                </p>
             </nav>
         </article>
     </main>
@@ -195,6 +208,119 @@
         // Article data
         let articleData = null;
 
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function getSourceName(url) {
+            try {
+                const host = new URL(url).hostname.replace(/^www\./, '');
+                if (host.includes('thehindu')) return 'The Hindu';
+                if (host.includes('pib.gov')) return 'PIB';
+                if (host.includes('indianexpress')) return 'The Indian Express';
+                if (host.includes('hindustantimes')) return 'Hindustan Times';
+                if (host.includes('livemint')) return 'Livemint';
+                if (host.includes('business-standard')) return 'Business Standard';
+                if (host.includes('bbc')) return 'BBC News';
+                return host;
+            } catch {
+                return 'News Source';
+            }
+        }
+
+        function renderArticleQuiz(q) {
+            const questionText = document.getElementById('article-quiz-question');
+            const optionsList = document.getElementById('article-quiz-options');
+            const feedback = document.getElementById('article-quiz-feedback');
+            if (!questionText || !optionsList || !feedback) return;
+
+            questionText.textContent = q.question;
+            const LETTERS = ['A', 'B', 'C', 'D'];
+            const correct = String(q.correct_answer || '').trim().toUpperCase();
+
+            optionsList.innerHTML = LETTERS.map((letter) => {
+                const text = q[`option_${letter.toLowerCase()}`] || '';
+                if (!text) return '';
+                return `<li>
+                    <label class="quiz-option-row">
+                        <input type="radio" name="article-quiz-choice" value="${letter}">
+                        <span class="quiz-option-text">${letter}. ${escapeHtml(text)}</span>
+                    </label>
+                </li>`;
+            }).filter(Boolean).join('');
+
+            optionsList.addEventListener('change', (e) => {
+                if (!e.target.matches('input[type="radio"]')) return;
+                const selected = e.target.value;
+                const isCorrect = selected === correct;
+
+                optionsList.querySelectorAll('input[type="radio"]').forEach((input) => {
+                    input.disabled = true;
+                    const label = input.closest('.quiz-option-row');
+                    if (label) {
+                        if (input.value === correct) label.classList.add('is-correct');
+                        else if (input.value === selected) label.classList.add('is-wrong');
+                    }
+                });
+
+                const selectedText = q[`option_${selected.toLowerCase()}`] || '';
+                const correctText = q[`option_${correct.toLowerCase()}`] || '';
+                let feedbackHtml = `
+                    <p class="quiz-verdict ${isCorrect ? 'is-correct' : 'is-wrong'}">
+                        <strong>${isCorrect ? 'Correct' : 'Incorrect'}</strong>
+                    </p>
+                    <p class="quiz-answer-line">Your answer: ${selected}. ${escapeHtml(selectedText)}</p>
+                `;
+                if (!isCorrect) {
+                    feedbackHtml += `<p class="quiz-answer-line">Correct answer: ${correct}. ${escapeHtml(correctText)}</p>`;
+                }
+                if (q.explanation) {
+                    feedbackHtml += `<p class="quiz-explanation">Explanation: ${escapeHtml(q.explanation)}</p>`;
+                }
+                feedback.innerHTML = feedbackHtml;
+                feedback.hidden = false;
+            }, { once: true });
+        }
+
+        async function loadArticleQuiz(sourceUrl, date) {
+            const quizSection = document.getElementById('article-quiz');
+            const container = document.getElementById('article-quiz-container');
+            if (!quizSection || !container) return;
+            if (!sourceUrl) {
+                container.innerHTML = `
+                    <p class="article-quiz-prompt">Reinforce today's learning with the Daily Quiz.</p>
+                    <p><a class="btn btn-secondary" href="/quiz/?date=${encodeURIComponent(date || '')}">Take Daily Quiz &rarr;</a></p>
+                `;
+                quizSection.hidden = false;
+                return;
+            }
+            try {
+                const response = await fetch(`/api/quiz/article?url=${encodeURIComponent(sourceUrl)}`);
+                if (!response.ok) throw new Error('Quiz lookup failed');
+                const data = await response.json();
+                if (data && data.question) {
+                    renderArticleQuiz(data.question);
+                    quizSection.hidden = false;
+                } else {
+                    container.innerHTML = `
+                        <p class="article-quiz-prompt">Reinforce today's learning with the Daily Quiz.</p>
+                        <p><a class="btn btn-secondary" href="/quiz/?date=${encodeURIComponent(date || '')}">Take Daily Quiz &rarr;</a></p>
+                    `;
+                    quizSection.hidden = false;
+                }
+            } catch {
+                container.innerHTML = `
+                    <p class="article-quiz-prompt">Reinforce today's learning with the Daily Quiz.</p>
+                    <p><a class="btn btn-secondary" href="/quiz/?date=${encodeURIComponent(date || '')}">Take Daily Quiz &rarr;</a></p>
+                `;
+                quizSection.hidden = false;
+            }
+        }
+
         // Fetch article by ID from the API
         async function loadArticle(articleId) {
             try {
@@ -214,7 +340,6 @@
             const date = data.date ? new Intl.DateTimeFormat('en-GB', {
                 day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
             }).format(new Date(data.date)) : '';
-            const published = data.created_at ? new Date(data.created_at).toLocaleDateString('en-GB') : '';
             const subject = data.subject || '';
 
             document.getElementById('article-date').textContent = date || '';
@@ -222,9 +347,16 @@
             if (data.title) {
                 document.title = `${data.title} — Top Current Affairs`;
             }
-            document.getElementById('article-subject').textContent = subject ? `(${subject})` : '';
-            document.getElementById('article-published').setAttribute('datetime', data.created_at || '');
-            document.getElementById('article-published').textContent = published || '';
+            const subjectEl = document.getElementById('article-subject');
+            const dateSep = document.getElementById('article-date-sep');
+            if (subject) {
+                subjectEl.textContent = subject;
+                subjectEl.hidden = false;
+                if (dateSep) dateSep.hidden = !date;
+            } else {
+                subjectEl.hidden = true;
+                if (dateSep) dateSep.hidden = true;
+            }
 
             // Back link returns to the article's day, never a mixed feed (Phase 4).
             if (data.date) {
@@ -274,7 +406,7 @@
             // Article content
             const contentDiv = document.getElementById('article-content');
             if (data.brief_summary) {
-                contentDiv.innerHTML = `<p>${data.brief_summary}</p>`;
+                contentDiv.innerHTML = `<p>${escapeHtml(data.brief_summary)}</p>`;
             } else {
                 contentDiv.innerHTML = '<p>No summary available.</p>';
             }
@@ -291,15 +423,20 @@
                 examPointDiv.style.display = 'block';
             }
 
-            // Original source (V1): the fetched url is finally surfaced.
+            // Original source attribution
             const sourceLink = document.getElementById('article-source');
+            const sourceName = document.getElementById('article-source-name');
             const sourceWrap = document.getElementById('article-source-wrap');
             if (data.url) {
                 sourceLink.href = data.url;
+                if (sourceName) sourceName.textContent = `Source: ${getSourceName(data.url)}`;
                 if (sourceWrap) sourceWrap.hidden = false;
             } else if (sourceWrap) {
                 sourceWrap.hidden = true;
             }
+
+            // Daily Quiz for this article
+            loadArticleQuiz(data.url, data.date);
 
             // Anonymous feedback (PROJECT_SPEC §11): available once the article
             // is loaded, since the rating is tied to its id.
