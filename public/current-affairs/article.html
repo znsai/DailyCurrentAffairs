@@ -99,7 +99,17 @@
                     <span class="date-step-sep" id="article-date-sep" aria-hidden="true">&middot;</span>
                     <span class="article-subject" id="article-subject"></span>
                 </div>
-                <h1 class="article-title" id="article-title"></h1>
+                <h1 class="article-title">
+                    <span id="article-title"></span>
+                    <a class="source-icon-link" id="article-source-icon" href="#" target="_blank" rel="noopener noreferrer" title="Read original source" aria-label="Read original source" hidden>
+                        <svg class="source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        <span class="source-tooltip" role="tooltip">Read original source</span>
+                    </a>
+                </h1>
             </header>
 
             <h2 class="article-section-label">Quick Summary</h2>
@@ -153,15 +163,6 @@
                 <p class="article-rating-error" id="article-rating-error" role="alert" hidden>Feedback could not be
                     saved. Please try again later.</p>
             </section>
-
-            <!-- Source attribution -->
-            <div class="article-source-box" id="article-source-wrap" hidden>
-                <span class="article-source-label" id="article-source-name">Source: The Hindu</span>
-                <span class="date-step-sep" aria-hidden="true">&middot;</span>
-                <a class="article-source-link" id="article-source" href="#" target="_blank" rel="noopener noreferrer">
-                    Read original source <span aria-hidden="true">&nearr;</span><span class="sr-only"> (opens in a new tab)</span>
-                </a>
-            </div>
 
             <!-- Bottom Editorial Navigation Bar: Prev / Day Overview / Next -->
             <nav class="article-nav-bar" aria-label="Adjacent articles">
@@ -442,18 +443,17 @@
             } else {
                 examPointText.textContent = 'No exam point identified for this article.';
                 examPointDiv.style.display = 'block';
-            }
-
-            // Original source attribution
-            const sourceLink = document.getElementById('article-source');
-            const sourceName = document.getElementById('article-source-name');
-            const sourceWrap = document.getElementById('article-source-wrap');
+            // Original source icon next to article heading
+            const sourceIcon = document.getElementById('article-source-icon');
             if (data.url) {
-                sourceLink.href = data.url;
-                if (sourceName) sourceName.textContent = `Source: ${getSourceName(data.url)}`;
-                if (sourceWrap) sourceWrap.hidden = false;
-            } else if (sourceWrap) {
-                sourceWrap.hidden = true;
+                if (sourceIcon) {
+                    sourceIcon.href = data.url;
+                    sourceIcon.setAttribute('title', `Read original source (${getSourceName(data.url)})`);
+                    sourceIcon.setAttribute('aria-label', `Read original source (${getSourceName(data.url)})`);
+                    sourceIcon.hidden = false;
+                }
+            } else if (sourceIcon) {
+                sourceIcon.hidden = true;
             }
 
             // Daily Quiz for this article

@@ -364,8 +364,8 @@
             }).format(new Date(dateString));
         }
 
-        // Render article items as study cards: subject + date, title,
-        // summary, exam point, and source.
+        // Render article items as study cards: subject + date, title + source icon,
+        // summary, and exam point.
         function renderArticles(articles) {
             if (articles.length === 0) {
                 emptyState.style.display = 'block';
@@ -386,15 +386,21 @@
                         <p>${escapeHtml(article.what_is_important)}</p>
                     </div>`
                     : '';
-                const actions = article.url
-                    ? `<p class="article-item-actions"><a class="article-source" href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer">Read original source<span class="sr-only"> (opens in a new tab)</span></a></p>`
+                const sourceIcon = article.url
+                    ? `<a class="source-icon-link" href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" title="Read original source" aria-label="Read original source (${title})">
+                        <svg class="source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        <span class="source-tooltip" role="tooltip">Read original source</span>
+                    </a>`
                     : '';
                 return `<li class="article-item">
                     <p class="study-eyebrow">${subject} <span class="study-date">${date}</span></p>
-                    <h2><a href="/current-affairs/${id}">${title}</a></h2>
+                    <h2><a href="/current-affairs/${id}">${title}</a>${sourceIcon}</h2>
                     <p>${summary}</p>
                     ${examPoint}
-                    ${actions}
                 </li>`;
             }).join('');
         }
