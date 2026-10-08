@@ -70,18 +70,22 @@
         <h1>Daily Quiz</h1>
         <p class="card-meta" id="quiz-date-line"></p>
         <div class="ruled stack-md">
-            <p>Today's quiz reinforces today's current affairs: one question at a time. Choose an answer, check it,
+            <p id="quiz-intro-text">Daily Quiz reinforces current affairs: one question at a time. Choose an answer, check it,
                 read the explanation, then continue.</p>
         </div>
+
+        <p class="archive-note stack-md" id="quiz-archive-nav">
+            Pick another day in the <a href="/archive/?type=quiz">Quiz Archive</a>.<span id="quiz-back-today-wrap" hidden> &middot; <a id="quiz-back-today" href="/quiz/">Back to today's quiz</a></span>
+        </p>
 
         <div id="quiz-status" class="quiz-status stack-lg" role="status" aria-live="polite">
             <div class="demo-row">
                 <span class="spinner" aria-hidden="true"></span>
-                <span class="card-meta">Loading today's quiz&hellip;</span>
+                <span class="card-meta" id="quiz-loading-label">Loading quiz&hellip;</span>
             </div>
         </div>
 
-        <section id="quiz-session" class="quiz-session stack-lg" hidden aria-label="Today's quiz questions">
+        <section id="quiz-session" class="quiz-session stack-lg" hidden aria-label="Daily quiz questions">
             <div class="page-stage" id="quiz-stage"></div>
             <div class="quiz-toolbar" id="quiz-toolbar">
                 <button type="button" class="btn btn-primary" id="quiz-check" disabled>Check Answer</button>
@@ -101,7 +105,8 @@
             <div class="quiz-result-actions">
                 <button type="button" class="btn btn-primary" id="quiz-review-toggle" aria-expanded="false"
                     aria-controls="quiz-review">Review Answers</button>
-                <a class="btn btn-secondary" href="/current-affairs/">Back to Current Affairs</a>
+                <a class="btn btn-secondary" id="quiz-result-ca-link" href="/current-affairs/">Back to Current Affairs</a>
+                <a class="btn btn-secondary" href="/archive/?type=quiz">Quiz Archive</a>
             </div>
             <ol class="quiz-review" id="quiz-review" hidden></ol>
         </section>

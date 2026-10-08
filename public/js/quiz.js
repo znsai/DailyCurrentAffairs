@@ -227,21 +227,38 @@
     reviewToggle.textContent = opening ? 'Hide Review Answers' : 'Review Answers';
   });
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedDate = urlParams.get('date') || '';
+  const isCustomDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) && !Number.isNaN(Date.parse(requestedDate));
+  const selectedDate = isCustomDate ? requestedDate : appToday();
+
+  const backTodayWrap = document.getElementById('quiz-back-today-wrap');
+  if (backTodayWrap) {
+    backTodayWrap.hidden = selectedDate === appToday();
+  }
+  const caResultLink = document.getElementById('quiz-result-ca-link');
+  if (caResultLink) {
+    caResultLink.href = `/current-affairs/?date=${encodeURIComponent(selectedDate)}`;
+  }
+
   async function loadQuiz() {
-    const today = appToday();
+    const today = selectedDate;
+    if (isCustomDate) {
+      document.title = `Daily Quiz for ${formatDateLine(today)} — Top Current Affairs`;
+    }
     try {
       // Daily Quiz session (PROJECT_SPEC §10): 10 random questions for the day,
       // selected by the API. The UI only ever receives the session.
       const response = await fetch(`/api/quiz?date=${today}&limit=${QUIZ_SESSION_LIMIT}&session=1`);
-      if (!response.ok) throw new Error('Unable to load today\'s quiz.');
+      if (!response.ok) throw new Error('Unable to load quiz.');
       const data = await response.json();
       questions = data.questions || [];
       if (questions.length === 0) {
         dateLine.textContent = formatDateLine(today);
         statusRegion.innerHTML = `<div class="notice">
-            <h2>No quiz today</h2>
-            <p>Today's quiz isn't published yet. Read today's current affairs first; the quiz appears here once it is ready.</p>
-            <p><a href="/current-affairs/">Go to Current Affairs</a></p>
+            <h2>No quiz for this day</h2>
+            <p>Quiz for ${formatDateLine(today)} isn't available yet. Pick another day in the <a href="/archive/?type=quiz">Quiz Archive</a> or read current affairs.</p>
+            <p><a href="/current-affairs/?date=${encodeURIComponent(today)}">Go to Current Affairs</a> &middot; <a href="/archive/?type=quiz">Quiz Archive</a></p>
           </div>`;
         return;
       }
@@ -253,8 +270,8 @@
     } catch (error) {
       statusRegion.innerHTML = `<div class="notice">
           <h2>Quiz unavailable</h2>
-          <p>We couldn't load today's quiz. Please try again in a moment.</p>
-          <p><a href="/current-affairs/">Go to Current Affairs</a></p>
+          <p>We couldn't load the quiz for ${formatDateLine(today)}. Please try again in a moment.</p>
+          <p><a href="/current-affairs/?date=${encodeURIComponent(today)}">Go to Current Affairs</a> &middot; <a href="/archive/?type=quiz">Quiz Archive</a></p>
         </div>`;
     }
   }

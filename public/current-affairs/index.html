@@ -75,6 +75,7 @@
                     <strong id="article-count">0</strong>
                 </div>
                 <p class="archive-note">Pick another day in the <a href="/archive/">Archive</a>.</p>
+                <p class="archive-note"><a id="day-quiz-link" href="/quiz/">Take this day&rsquo;s Daily Quiz &rarr;</a></p>
                 <p class="archive-note"><a id="back-today" href="/current-affairs/" hidden>Back to today</a></p>
                 <p class="archive-start-wrap" id="start-day-wrap" hidden>
                     <a class="btn btn-primary" id="start-day" href="/current-affairs/">Start Today&rsquo;s Study
@@ -324,6 +325,10 @@
 
         // Initialize: URL-driven day view.
         (function init() {
+            const dayQuizLink = document.getElementById('day-quiz-link');
+            if (dayQuizLink) {
+                dayQuizLink.href = `/quiz/?date=${encodeURIComponent(selectedDate || appToday())}`;
+            }
             if (selectedDate) {
                 const heading = formatDayHeading(selectedDate);
                 selectedDay.textContent = heading;

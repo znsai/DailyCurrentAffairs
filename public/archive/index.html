@@ -65,11 +65,19 @@
         </div>
     </header>
     <main class="site-main" id="main">
-        <p class="archive-kicker">Current Affairs</p>
-        <h1>Archive</h1>
+        <p class="archive-kicker" id="archive-kicker">Current Affairs</p>
+        <h1 id="archive-heading">Archive</h1>
         <div class="ruled stack-md">
-            <p>Pick a day to study its current affairs. Each date with published
+            <p id="archive-intro-text">Pick a day to study its current affairs. Each date with published
                 articles shows its count.</p>
+        </div>
+
+        <div class="archive-filters stack-lg" role="group" aria-label="Archive view mode">
+            <label class="filter-label" for="archive-type-select">Browse:</label>
+            <select id="archive-type-select" class="filter-select">
+                <option value="articles">Current Affairs Articles</option>
+                <option value="quiz">Daily Quizzes</option>
+            </select>
         </div>
 
         <nav class="month-nav stack-lg" aria-label="Choose a month">
@@ -97,13 +105,13 @@
                 </thead>
                 <tbody id="archive-days"></tbody>
             </table>
-            <p class="calendar-legend">A number means articles were published that day; a plain date has none.</p>
+            <p class="calendar-legend" id="calendar-legend">A number means articles were published that day; a plain date has none.</p>
         </div>
 
         <div class="notice stack-lg" id="archive-empty" hidden>
-            <h2>No articles this month</h2>
+            <h2 id="archive-empty-title">No content this month</h2>
             <p id="archive-empty-text"></p>
-            <p><a href="/current-affairs/">Go to today's current affairs</a></p>
+            <p><a id="archive-empty-link" href="/current-affairs/">Go to today's current affairs</a></p>
         </div>
 
         <div class="notice notice-error stack-lg" id="archive-error" role="alert" hidden>
@@ -145,9 +153,15 @@
             const calendarFrame = document.getElementById('calendar-frame');
             const loadingState = document.getElementById('archive-loading');
             const emptyState = document.getElementById('archive-empty');
+            const emptyTitle = document.getElementById('archive-empty-title');
             const emptyText = document.getElementById('archive-empty-text');
+            const emptyLink = document.getElementById('archive-empty-link');
             const errorState = document.getElementById('archive-error');
             const status = document.getElementById('archive-status');
+            const typeSelect = document.getElementById('archive-type-select');
+            const kicker = document.getElementById('archive-kicker');
+            const introText = document.getElementById('archive-intro-text');
+            const legend = document.getElementById('calendar-legend');
 
             function appToday() {
                 const parts = new Intl.DateTimeFormat('en-CA', {
@@ -158,9 +172,28 @@
             }
 
             const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-            const urlMonth = new URLSearchParams(window.location.search).get('month') || '';
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlMonth = urlParams.get('month') || '';
             const stateMonth = MONTH_RE.test(urlMonth) ? urlMonth : appToday().slice(0, 7);
             const currentMonth = appToday().slice(0, 7);
+            const stateType = urlParams.get('type') === 'quiz' ? 'quiz' : 'articles';
+            const isQuiz = stateType === 'quiz';
+
+            typeSelect.value = stateType;
+            if (isQuiz) {
+                kicker.textContent = 'Daily Quiz';
+                introText.textContent = 'Pick a day to take its daily quiz. Each date with available questions shows its count.';
+                legend.textContent = 'A number means quiz questions are available for that day; a plain date has none.';
+                document.title = 'Quiz Archive — Top Current Affairs';
+            }
+
+            function buildArchiveUrl({ month = stateMonth, type = stateType } = {}) {
+                const params = new URLSearchParams();
+                if (month !== currentMonth) params.set('month', month);
+                if (type !== 'articles') params.set('type', type);
+                const qs = params.toString();
+                return `/archive/${qs ? `?${qs}` : ''}`;
+            }
 
             function monthParts(month) {
                 return { year: Number(month.slice(0, 4)), monthIndex: Number(month.slice(5, 7)) - 1 };
@@ -169,8 +202,7 @@
             function labelFor(month) {
                 return new Intl.DateTimeFormat('en-IN', {
                     month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
-                })
-                    .format(new Date(`${month}-01T00:00:00Z`));
+                }).format(new Date(`${month}-01T00:00:00Z`));
             }
 
             function shiftMonth(month, delta) {
@@ -193,13 +225,16 @@
             }
 
             prevButton.addEventListener('click', () => {
-                window.location.href = `/archive/?month=${shiftMonth(stateMonth, -1)}`;
+                window.location.href = buildArchiveUrl({ month: shiftMonth(stateMonth, -1) });
             });
             nextButton.addEventListener('click', () => {
-                window.location.href = `/archive/?month=${shiftMonth(stateMonth, 1)}`;
+                window.location.href = buildArchiveUrl({ month: shiftMonth(stateMonth, 1) });
             });
             todayButton.addEventListener('click', () => {
-                window.location.href = '/archive/';
+                window.location.href = buildArchiveUrl({ month: currentMonth });
+            });
+            typeSelect.addEventListener('change', () => {
+                window.location.href = buildArchiveUrl({ month: stateMonth, type: typeSelect.value });
             });
 
             function dayLabel(dateStr) {
@@ -233,9 +268,11 @@
                     if (count) {
                         const link = document.createElement('a');
                         link.className = 'cal-cell';
-                        link.href = `/current-affairs/?date=${dateStr}`;
-                        link.setAttribute('aria-label',
-                            `${dayLabel(dateStr)}, ${count} ${count === 1 ? 'article' : 'articles'}`);
+                        link.href = isQuiz ? `/quiz/?date=${dateStr}` : `/current-affairs/?date=${dateStr}`;
+                        const unit = isQuiz
+                            ? (count === 1 ? 'question' : 'questions')
+                            : (count === 1 ? 'article' : 'articles');
+                        link.setAttribute('aria-label', `${dayLabel(dateStr)}, ${count} ${unit}`);
                         if (isToday) link.setAttribute('aria-current', 'date');
                         const dayEl = document.createElement('span');
                         dayEl.className = `cal-day${isToday ? ' is-today' : ''}`;
@@ -252,7 +289,8 @@
                         dayEl.textContent = String(day);
                         const srOnly = document.createElement('span');
                         srOnly.className = 'sr-only';
-                        srOnly.textContent = isToday ? ', today, no articles' : ', no articles';
+                        const emptyUnit = isQuiz ? 'no quiz' : 'no articles';
+                        srOnly.textContent = isToday ? `, today, ${emptyUnit}` : `, ${emptyUnit}`;
                         dayEl.append(srOnly);
                         cell.append(dayEl);
                     }
@@ -271,21 +309,29 @@
             async function load() {
                 setMonthUi(stateMonth);
                 try {
-                    const response = await fetch(`/api/archive?month=${stateMonth}`);
+                    const response = await fetch(`/api/archive?month=${stateMonth}&type=${stateType}`);
                     if (!response.ok) throw new Error('Archive request failed');
                     const data = await response.json();
                     const days = data.days || [];
                     loadingState.hidden = true;
                     if (days.length === 0) {
-                        emptyText.textContent = `No current affairs published in ${labelFor(stateMonth)} yet.`;
+                        emptyTitle.textContent = isQuiz ? 'No quizzes this month' : 'No articles this month';
+                        emptyText.textContent = isQuiz
+                            ? `No quizzes published in ${labelFor(stateMonth)} yet.`
+                            : `No current affairs published in ${labelFor(stateMonth)} yet.`;
+                        emptyLink.href = isQuiz ? '/quiz/' : '/current-affairs/';
+                        emptyLink.textContent = isQuiz ? "Go to today's daily quiz" : "Go to today's current affairs";
                         emptyState.hidden = false;
-                        status.textContent = `${labelFor(stateMonth)}: no articles`;
+                        status.textContent = `${labelFor(stateMonth)}: ${isQuiz ? 'no quizzes' : 'no articles'}`;
                         return;
                     }
                     renderCalendar(data);
                     calendarFrame.hidden = false;
                     const label = labelFor(stateMonth);
-                    status.textContent = `${label}: ${days.length} ${days.length === 1 ? 'day' : 'days'} with articles`;
+                    const unit = isQuiz
+                        ? (days.length === 1 ? 'day with quizzes' : 'days with quizzes')
+                        : (days.length === 1 ? 'day with articles' : 'days with articles');
+                    status.textContent = `${label}: ${days.length} ${unit}`;
                 } catch (error) {
                     loadingState.hidden = true;
                     errorState.hidden = false;

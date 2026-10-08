@@ -438,9 +438,9 @@ async function handleQuizForArticle(url, env) {
 }
 
 /**
- * GET /api/archive?month=YYYY-MM
- * Month metadata for the Archive calendar: dates with article counts only.
- * Never returns articles. `month` defaults to the canonical app month
+ * GET /api/archive?month=YYYY-MM&type=articles|quiz
+ * Month metadata for the Archive calendar: dates with counts only (articles or quizzes).
+ * Never returns articles or questions. `month` defaults to the canonical app month
  * (Asia/Kolkata) when omitted; the frontend always sends it explicitly.
  */
 async function handleArchive(url, env) {
@@ -455,6 +455,9 @@ async function handleArchive(url, env) {
     return errorResponse("Invalid month format, expected YYYY-MM");
   }
 
+  const isQuiz = url.searchParams.get("type") === "quiz";
+  const tableName = isQuiz ? "quizzes" : "current_affairs";
+
   const monthNum = Number(month.slice(5, 7));
   const yearNum = Number(month.slice(0, 4));
   const nextMonth = monthNum === 12
@@ -464,7 +467,7 @@ async function handleArchive(url, env) {
 
   const sql = `
     SELECT to_char(date, 'YYYY-MM-DD') AS date, COUNT(*) AS count
-    FROM current_affairs
+    FROM ${tableName}
     WHERE date >= $1 AND date < $2
     GROUP BY date
     ORDER BY date ASC
@@ -474,6 +477,7 @@ async function handleArchive(url, env) {
     const rows = await query(env.DATABASE_URL, sql, params);
     return json({
       month,
+      type: isQuiz ? "quiz" : "articles",
       days: rows.map((row) => ({ date: row.date, count: Number(row.count) })),
     }, 200, "public, max-age=300, stale-while-revalidate=600");
   } catch (err) {
