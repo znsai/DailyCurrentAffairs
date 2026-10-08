@@ -269,6 +269,19 @@
             pageNext.disabled = currentPage >= totalPages;
         }
 
+        function getCachedDay(key) {
+            try {
+                const item = sessionStorage.getItem(`ca_day_${key}`);
+                return item ? JSON.parse(item) : null;
+            } catch { return null; }
+        }
+
+        function setCachedDay(key, data) {
+            try {
+                sessionStorage.setItem(`ca_day_${key}`, JSON.stringify(data));
+            } catch {}
+        }
+
         // Fetch one day only: explicit date, bounded page size (API ceiling 200,
         // daily UI never renders more than PAGE_SIZE cards).
         async function loadArticles() {
@@ -286,16 +299,30 @@
             });
             if (selectedSubject) query.set('subject', selectedSubject);
 
-            loadingState.style.display = 'block';
-            emptyState.style.display = 'none';
-            articleList.innerHTML = '';
-            articleCount.textContent = '0';
-            dayPager.hidden = true;
+            const cacheKey = query.toString();
+            const cached = getCachedDay(cacheKey);
+
+            if (cached) {
+                loadingState.style.display = 'none';
+                renderArticles(cached.articles || []);
+                const total = Number.isFinite(cached.total) ? cached.total : (cached.articles || []).length;
+                articleCount.textContent = String(total);
+                updatePager(total, (cached.articles || []).length);
+                startDay.href = buildPageUrl({ date: selectedDate, subject: selectedSubject, page: 1 });
+                startDayWrap.hidden = (cached.articles || []).length === 0;
+            } else {
+                loadingState.style.display = 'block';
+                emptyState.style.display = 'none';
+                articleList.innerHTML = '';
+                articleCount.textContent = '0';
+                dayPager.hidden = true;
+            }
 
             try {
                 const response = await fetch(`/api/current-affairs?${query}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
+                setCachedDay(cacheKey, data);
                 const articles = data.articles || [];
                 const total = Number.isFinite(data.total) ? data.total : articles.length;
                 renderArticles(articles);
@@ -313,8 +340,10 @@
                     emptyState.style.display = 'block';
                 }
             } catch (err) {
-                console.error('Failed to load articles:', err);
-                articleList.innerHTML = '<li class="error-state">Failed to load articles. Please try again.</li>';
+                if (!cached) {
+                    console.error('Failed to load articles:', err);
+                    articleList.innerHTML = '<li class="error-state">Failed to load articles. Please try again.</li>';
+                }
             } finally {
                 loadingState.style.display = 'none';
             }

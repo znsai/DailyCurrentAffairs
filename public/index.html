@@ -255,15 +255,50 @@
             articleList.replaceChildren(...articles.map(createArticleItem));
         }
 
+        function getCachedHome(key) {
+            try {
+                const item = sessionStorage.getItem(`ca_home_${key}`);
+                return item ? JSON.parse(item) : null;
+            } catch { return null; }
+        }
+
+        function setCachedHome(key, data) {
+            try {
+                sessionStorage.setItem(`ca_home_${key}`, JSON.stringify(data));
+            } catch {}
+        }
+
         // Today's feed only: canonical app day, explicit date, compact cap.
         async function loadArticles(query = '') {
             const today = appToday();
             homeDate.textContent = formatDate(today, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             scopeTopicsToDate(today);
-            feedState.hidden = true;
-            feedCount.textContent = 'Loading current affairs…';
-            previewMeta.textContent = 'Loading…';
-            articleList.setAttribute('aria-busy', 'true');
+
+            const cacheKey = query ? `search_${query}` : `today_${today}`;
+            const cached = getCachedHome(cacheKey);
+
+            if (cached) {
+                const articles = cached.articles || [];
+                renderArticles(articles);
+                const total = query ? articles.length : (Number.isFinite(cached.total) ? cached.total : articles.length);
+                feedCount.textContent = query
+                    ? `${articles.length} ${articles.length === 1 ? 'result' : 'results'}`
+                    : `${total} current-affairs ${total === 1 ? 'item' : 'items'}`;
+                previewMeta.textContent = query
+                    ? 'Search results'
+                    : `${formatDate(today, { day: '2-digit', month: 'long', year: 'numeric' })} · ${total} ${total === 1 ? 'item' : 'items'}`;
+                updateStartCta(query, articles);
+                viewAllWrap.hidden = Boolean(query) || total === 0;
+                viewAllToday.href = `/current-affairs/?date=${today}`;
+                viewAllToday.textContent = `View all ${total} current-affairs ${total === 1 ? 'item' : 'items'} →`;
+                feedState.hidden = true;
+            } else {
+                feedState.hidden = true;
+                feedCount.textContent = 'Loading current affairs…';
+                previewMeta.textContent = 'Loading…';
+                articleList.setAttribute('aria-busy', 'true');
+            }
+
             try {
                 const endpoint = query
                     ? `/api/search?${new URLSearchParams({ q: query, page: '1', limit: '20' })}`
@@ -271,6 +306,7 @@
                 const response = await fetch(endpoint);
                 if (!response.ok) throw new Error('Unable to load current affairs. Please try again.');
                 const data = await response.json();
+                setCachedHome(cacheKey, data);
                 const articles = data.articles || [];
                 renderArticles(articles);
                 const total = query ? articles.length : (Number.isFinite(data.total) ? data.total : articles.length);
@@ -291,13 +327,15 @@
                     feedState.hidden = false;
                 }
             } catch (error) {
-                articleList.replaceChildren();
-                feedCount.textContent = 'Current affairs unavailable';
-                previewMeta.textContent = 'Unavailable';
-                startWrap.hidden = true;
-                viewAllWrap.hidden = true;
-                feedState.textContent = error.message;
-                feedState.hidden = false;
+                if (!cached) {
+                    articleList.replaceChildren();
+                    feedCount.textContent = 'Current affairs unavailable';
+                    previewMeta.textContent = 'Unavailable';
+                    startWrap.hidden = true;
+                    viewAllWrap.hidden = true;
+                    feedState.textContent = error.message;
+                    feedState.hidden = false;
+                }
             } finally {
                 articleList.removeAttribute('aria-busy');
             }

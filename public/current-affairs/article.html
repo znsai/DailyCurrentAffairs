@@ -321,17 +321,38 @@
             }
         }
 
-        // Fetch article by ID from the API
+        // Session storage caching for 0ms instant back/forward navigation
+        function getCachedArticle(id) {
+            try {
+                const item = sessionStorage.getItem(`ca_art_${id}`);
+                return item ? JSON.parse(item) : null;
+            } catch { return null; }
+        }
+
+        function setCachedArticle(id, data) {
+            try {
+                sessionStorage.setItem(`ca_art_${id}`, JSON.stringify(data));
+            } catch {}
+        }
+
+        // Fetch article by ID from the API with stale-while-revalidate caching
         async function loadArticle(articleId) {
+            const cached = getCachedArticle(articleId);
+            if (cached) {
+                articleData = cached;
+                renderArticle(articleData);
+            }
             try {
                 const response = await fetch(`/api/current-affairs/${articleId}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 articleData = await response.json();
-
+                setCachedArticle(articleId, articleData);
                 renderArticle(articleData);
             } catch (err) {
-                console.error('Failed to load article:', err);
-                document.getElementById('article-content').innerHTML = '<p class="error-state">Failed to load article. Please try again.</p>';
+                if (!cached) {
+                    console.error('Failed to load article:', err);
+                    document.getElementById('article-content').innerHTML = '<p class="error-state">Failed to load article. Please try again.</p>';
+                }
             }
         }
 
@@ -566,18 +587,17 @@
         }
 
         // Initialize: extract the opaque article reference from the URL or use default
-        document.addEventListener('DOMContentLoaded', () => {            // Try to get article ID from URL path like /current-affairs/[id]
+        (function init() {
             const path = window.location.pathname;
             const match = path.match(/\/current-affairs\/([^/]+)/);
             const articleId = match ? match[1] : 'latest';
 
-            // If "latest", fetch the most recent article
             if (articleId === 'latest') {
                 loadArticle("ca-1cGhW6"); // Opaque reference for the first article
             } else {
                 loadArticle(articleId);
             }
-        });
+        })();
     </script>
 </body>
 

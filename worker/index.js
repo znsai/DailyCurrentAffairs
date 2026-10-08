@@ -107,7 +107,7 @@ function parsePagination(url) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -122,57 +122,72 @@ export default {
       });
     }
 
+    // Cloudflare Edge Cache: Serve instant cached API responses for GET requests
+    let cache = null;
+    try {
+      if (typeof caches !== "undefined" && caches.default) {
+        cache = caches.default;
+      }
+    } catch {}
+
+    const isApiGet = request.method === "GET" && pathname.startsWith("/api/") && pathname !== "/api/health";
+    if (cache && isApiGet && !url.searchParams.has("session")) {
+      const cached = await cache.match(request);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    let response;
+
     if (pathname === "/api/health" && request.method === "GET") {
-      return json({
+      response = json({
         status: "ok",
         hasDatabase: Boolean(env.DATABASE_URL),
         time: new Date().toISOString(),
       });
-    }
-
-    if (pathname === "/api/current-affairs" && request.method === "GET") {
-      return handleCurrentAffairs(url, env);
-    }
-
-    const articleIdMatch = pathname.match(/^\/api\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
-    if (articleIdMatch && request.method === "GET") {
-      return handleArticle(articleIdMatch[1], env);
-    }
-
-    if (pathname === "/api/search" && request.method === "GET") {
-      return handleSearch(url, env);
-    }
-
-    if (pathname === "/api/quiz" && request.method === "GET") {
-      return handleQuizList(url, env);
-    }
-
-    if (pathname === "/api/quiz/article" && request.method === "GET") {
-      return handleQuizForArticle(url, env);
-    }
-
-    if (pathname === "/api/archive" && request.method === "GET") {
-      return handleArchive(url, env);
-    }
-
-    if (pathname === "/api/article-rating" && request.method === "POST") {
-      return handleArticleRating(request, env);
-    }
-
-    // Clean article URLs (/current-affairs/ca-1Ok3oB) serve the article shell, and any
-    // other /current-affairs/* path falls through to static assets — the assets
-    // config routes that prefix to the Worker first (see wrangler.toml).
-    if (request.method === "GET" || request.method === "HEAD") {
-      const articleSlug = pathname.match(/^\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
-      if (articleSlug) {
-        return env.ASSETS.fetch(new Request(new URL("/current-affairs/article.html", url)));
-      }
-      if (pathname.startsWith("/current-affairs/")) {
-        return env.ASSETS.fetch(request);
+    } else if (pathname === "/api/current-affairs" && request.method === "GET") {
+      response = await handleCurrentAffairs(url, env);
+    } else if (pathname === "/api/search" && request.method === "GET") {
+      response = await handleSearch(url, env);
+    } else if (pathname === "/api/quiz" && request.method === "GET") {
+      response = await handleQuizList(url, env);
+    } else if (pathname === "/api/quiz/article" && request.method === "GET") {
+      response = await handleQuizForArticle(url, env);
+    } else if (pathname === "/api/archive" && request.method === "GET") {
+      response = await handleArchive(url, env);
+    } else if (pathname === "/api/article-rating" && request.method === "POST") {
+      response = await handleArticleRating(request, env);
+    } else {
+      const articleIdMatch = pathname.match(/^\/api\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
+      if (articleIdMatch && request.method === "GET") {
+        response = await handleArticle(articleIdMatch[1], env);
+      } else if (request.method === "GET" || request.method === "HEAD") {
+        // Clean article URLs (/current-affairs/ca-1Ok3oB) serve the article shell, and any
+        // other /current-affairs/* path falls through to static assets — the assets
+        // config routes that prefix to the Worker first (see wrangler.toml).
+        const articleSlug = pathname.match(/^\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
+        if (articleSlug) {
+          return env.ASSETS.fetch(new Request(new URL("/current-affairs/article.html", url)));
+        }
+        if (pathname.startsWith("/current-affairs/")) {
+          return env.ASSETS.fetch(request);
+        }
+        return errorResponse("Not found", 404);
+      } else {
+        return errorResponse("Not found", 404);
       }
     }
 
-    return errorResponse("Not found", 404);
+    // Cache successful GET API responses at Cloudflare Edge
+    if (cache && ctx && ctx.waitUntil && isApiGet && response && response.status === 200 && !url.searchParams.has("session")) {
+      const cc = response.headers.get("cache-control") || "";
+      if (!cc.includes("no-store") && !cc.includes("no-cache")) {
+        ctx.waitUntil(cache.put(request, response.clone()));
+      }
+    }
+
+    return response;
   },
 };
 
@@ -550,23 +565,44 @@ async function handleArticleRating(request, env) {
 }
 
 /**
- * Minimal Postgres query helper using node-postgres over TCP.
+ * Postgres query helper using node-postgres with connection pool reuse.
  * Cloudflare Workers support nodejs_compat for the `pg` driver.
- * Kept dependency-light; a pool is created lazily and reused.
+ * Reusing a pool across requests within the same warm worker isolate avoids
+ * repeating the 150ms-400ms TCP + TLS handshake on every query.
  */
-let clientPromise = null;
+let pool = null;
+let currentDbUrl = null;
 
 async function query(databaseUrl, sql, params) {
-  const { Client } = await import("pg");
-  const client = new Client({
-    connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: false },
-  });
-  await client.connect();
+  const { Pool } = await import("pg");
+  if (!pool || currentDbUrl !== databaseUrl) {
+    currentDbUrl = databaseUrl;
+    pool = new Pool({
+      connectionString: databaseUrl,
+      ssl: { rejectUnauthorized: false },
+      max: 4,
+      idleTimeoutMillis: 15000,
+      connectionTimeoutMillis: 5000,
+    });
+  }
   try {
-    const result = await client.query(sql, params);
+    const result = await pool.query(sql, params);
     return result.rows;
-  } finally {
-    await client.end().catch(() => {});
+  } catch (err) {
+    console.warn("Pool query reset and retry:", err?.message);
+    try {
+      pool = new Pool({
+        connectionString: databaseUrl,
+        ssl: { rejectUnauthorized: false },
+        max: 4,
+        idleTimeoutMillis: 15000,
+        connectionTimeoutMillis: 5000,
+      });
+      const retryResult = await pool.query(sql, params);
+      return retryResult.rows;
+    } catch (retryErr) {
+      console.error("Database query retry failed:", retryErr);
+      throw retryErr;
+    }
   }
 }
