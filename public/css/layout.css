@@ -456,8 +456,12 @@
 
 .article-nav-adjacent {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 0.75rem;
+}
+
+.article-nav-link[hidden] {
+  display: none !important;
 }
 
 .article-nav-link {
@@ -476,6 +480,11 @@
 
 .article-nav-link:hover {
   border-color: var(--color-primary);
+  background: var(--color-surface-muted);
+}
+
+.article-nav-link.day-index {
+  text-align: center;
   background: var(--color-surface-muted);
 }
 
@@ -1374,5 +1383,24 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.15rem;
+  }
+
+  /* Mobile article navigation: clean full-width stacked cards */
+  .article-nav-adjacent {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .article-nav-link.prev {
+    order: 1;
+  }
+
+  .article-nav-link.next {
+    order: 2;
+  }
+
+  .article-nav-link.day-index {
+    order: 3;
+    text-align: center;
   }
 }
