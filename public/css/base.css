@@ -46,6 +46,11 @@ body {
   max-width: var(--max-reading);
 }
 
+/* Long headlines and source URLs should wrap rather than widen the page. */
+.site-main {
+  overflow-wrap: anywhere;
+}
+
 h1,
 h2,
 h3 {

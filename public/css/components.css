@@ -130,6 +130,86 @@
   font-size: var(--text-xl);
   line-height: var(--leading-heading);
   text-wrap: balance;
+  max-width: 42rem;
+}
+
+.quiz-landing {
+  max-width: 760px;
+  margin-inline: auto;
+  padding-block: clamp(1.25rem, 3vw, 2rem) 0.5rem;
+  border-top: 2px solid var(--color-border-strong);
+}
+
+.quiz-landing h2 {
+  margin-bottom: 0.25rem;
+  font-size: clamp(1.25rem, 3vw, 1.55rem);
+}
+
+.quiz-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 1rem 0 1.35rem;
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.quiz-mode {
+  min-height: 3rem;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.quiz-mode:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.quiz-mode.is-active {
+  border-bottom-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.quiz-mode:disabled {
+  color: var(--color-faint);
+  cursor: not-allowed;
+}
+
+.quiz-picker-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-width: 0;
+}
+
+.quiz-picker-fields label { display: grid; gap: .4rem; min-width: 0; font-weight: 700; }
+.quiz-picker-fields label span { font-family: var(--font-sans); font-size: var(--text-sm); letter-spacing: .02em; }
+.quiz-picker-fields input, .quiz-picker-fields select { width: 100%; min-width: 0; min-height: var(--touch-min); padding: .65rem .75rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); color-scheme: inherit; }
+.quiz-picker-fields input:focus-visible, .quiz-picker-fields select:focus-visible, .quiz-mode:focus-visible { outline-offset: 3px; }
+.quiz-picker-help { grid-column: 1 / -1; margin: -.25rem 0 0; color: var(--color-muted); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.45; }
+.quiz-required { color: var(--color-accent); font-style: normal; font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.quiz-picker-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1rem; margin-top: 1.25rem; }
+.quiz-picker .btn { margin: 0; }
+.quiz-picker-status { color: var(--color-muted); font-family: var(--font-sans); font-size: var(--text-sm); }
+.form-error { grid-column: 1 / -1; margin: -.25rem 0 0; padding: .55rem .75rem; border-inline-start: 3px solid var(--color-danger); background: var(--color-danger-bg); color: var(--color-danger); font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 700; }
+
+.quiz-picker-fields [aria-invalid="true"] { border-color: var(--color-danger); }
+
+@media (max-width: 34rem) {
+  .quiz-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quiz-mode { padding-inline: .35rem; }
+  .quiz-picker-fields { grid-template-columns: 1fr; }
+  .quiz-picker-actions { align-items: stretch; flex-direction: column; }
+  .quiz-picker .btn { width: 100%; }
 }
 
 .quiz-option {
@@ -198,6 +278,7 @@
   font-family: var(--font-hand);
   font-size: 1.2rem;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 /* Fields keep UI-sans labels; input text uses Sanchez for the notebook voice.
@@ -546,10 +627,18 @@
   margin-top: 0.75rem;
 }
 
+.quiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .quiz-feedback {
   margin-top: 0.75rem;
   padding: 0.75rem 1rem;
   background: var(--color-surface-muted);
+  overflow-wrap: anywhere;
 }
 
 .quiz-verdict {
@@ -820,4 +909,24 @@
   padding: 0;
   border-bottom: 0;
   box-shadow: none;
+}
+
+@media (max-width: 40rem) {
+  .quiz-actions {
+    width: 100%;
+  }
+
+  .quiz-actions .btn {
+    flex: 1 1 9rem;
+  }
+
+  .pager {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .pager-status {
+    order: -1;
+    width: 100%;
+  }
 }

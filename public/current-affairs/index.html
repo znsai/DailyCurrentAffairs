@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/calendar.css">
     <script src="/js/theme.js"></script>
 </head>
 
@@ -113,6 +114,15 @@
                     </div>
                 </div>
 
+                <form id="study-date-picker" class="study-date-picker" novalidate>
+                    <label for="study-date-input">Choose a study date</label>
+                    <div class="study-date-picker-row">
+                        <input id="study-date-input" type="date" data-calendar data-calendar-max-today="true" aria-describedby="study-date-error">
+                        <button class="btn btn-secondary" type="submit">Go</button>
+                    </div>
+                    <p class="form-error" id="study-date-error" role="alert" hidden></p>
+                </form>
+
                 <!-- Structured Actions: Start Study (Primary) + Daily Quiz (Secondary) -->
                 <div class="study-day-actions">
                     <p class="archive-start-wrap" id="start-day-wrap" style="margin:0;">
@@ -198,6 +208,7 @@
         </div>
     </footer>
 
+    <script src="/js/calendar.js"></script>
     <script>
         // Day-scoped Current Affairs (V1): URL state — ?date=YYYY-MM-DD (default
         // canonical app day), ?subject=, ?page=. Never loads historical dates.
@@ -248,6 +259,27 @@
         const selectedDate = isValidDay(requestedDate) ? requestedDate : '';
         const selectedSubject = knownSubject ? requestedSubject : '';
         filterSubject.value = selectedSubject;
+        const studyDateInput = document.getElementById('study-date-input');
+        const studyDateError = document.getElementById('study-date-error');
+        studyDateInput.value = selectedDate || appToday();
+        studyDateInput.max = appToday();
+        window.TCACalendar?.enhance(document.getElementById('study-date-picker'));
+        document.getElementById('study-date-picker').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const date = studyDateInput.value;
+            if (!isValidDay(date) || date > appToday()) {
+                studyDateError.textContent = 'Choose a valid study date no later than today.';
+                studyDateError.hidden = false;
+                studyDateInput.setAttribute('aria-invalid', 'true');
+                studyDateInput.focus();
+                return;
+            }
+            window.location.href = buildPageUrl({ date, page: 1 });
+        });
+        studyDateInput.addEventListener('input', () => {
+            studyDateError.hidden = true;
+            studyDateInput.removeAttribute('aria-invalid');
+        });
 
         function buildPageUrl({
             date = selectedDate || appToday(), subject = filterSubject.value, page = 1,

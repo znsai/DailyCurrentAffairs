@@ -94,7 +94,14 @@ function articleIdFromRef(ref) {
 
 /** Validate YYYY-MM-DD */
 function isValidDate(s) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [year, month, day] = s.split("-").map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day));
+  return value.getUTCFullYear() === year && value.getUTCMonth() === month - 1 && value.getUTCDate() === day;
+}
+
+function daysBetweenInclusive(from, to) {
+  return Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 1;
 }
 
 /** Parse and clamp pagination params */
@@ -397,9 +404,9 @@ async function handleSearch(url, env) {
 }
 
 /**
- * GET /api/quiz?date=YYYY-MM-DD&limit=10&session=1
- * Daily Quiz questions for one day (V1). `date` defaults to the canonical app
- * date (Asia/Kolkata) when omitted; the frontend always sends it explicitly.
+ * GET /api/quiz?mode=daily|weekly|monthly|topic&date=...&subject=...&from=...&to=...
+ * Daily mode is the backwards-compatible default. Dates are database dates (the
+ * app's canonical date is Asia/Kolkata); all filtering and random selection is SQL-side.
  *
  * `session=1` selects the student-facing Daily Quiz session: at most 10
  * questions, chosen at random for that day (PROJECT_SPEC §10). Randomness is
@@ -412,44 +419,41 @@ async function handleQuizList(url, env) {
     return errorResponse("DATABASE_URL is not configured", 500);
   }
 
-  let date = url.searchParams.get("date");
-  if (!date) {
-    date = appToday();
-  } else if (!isValidDate(date)) {
-    return errorResponse("Invalid date format, expected YYYY-MM-DD");
-  }
-
+  const mode = (url.searchParams.get("mode") || "daily").toLowerCase();
+  if (!["daily", "weekly", "monthly", "topic"].includes(mode)) return errorResponse("Invalid mode; expected daily, weekly, monthly, or topic");
+  const date = url.searchParams.get("date") || appToday();
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  const subject = (url.searchParams.get("subject") || "").trim();
+  if (!isValidDate(date)) return errorResponse("Invalid date format, expected YYYY-MM-DD");
+  if (from && !isValidDate(from) || to && !isValidDate(to)) return errorResponse("Invalid from/to date, expected YYYY-MM-DD");
+  if (from && to && from > to) return errorResponse("from must not be after to");
+  if (subject.length > 200) return errorResponse("subject is too long");
+  if (mode === "monthly" && (from || to) || mode === "monthly" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(url.searchParams.get("month") || date.slice(0, 7))) return errorResponse("Invalid month, expected YYYY-MM");
+  const month = url.searchParams.get("month") || date.slice(0, 7);
+  if (mode === "weekly" && ((from && !to) || (!from && to))) return errorResponse("weekly mode requires both from and to");
+  if (mode === "topic" && !subject) return errorResponse("topic mode requires subject");
+  if (mode === "monthly" && (month < "1900-01" || month > "9999-12")) return errorResponse("Invalid month, expected YYYY-MM");
+  const dayMs = 86400000;
+  const weeklyStart = from || new Date(Date.parse(date + "T00:00:00Z") - 3 * dayMs).toISOString().slice(0, 10);
+  const weeklyEnd = to || new Date(Date.parse(date + "T00:00:00Z") + 3 * dayMs).toISOString().slice(0, 10);
+  const start = mode === "weekly" ? weeklyStart : mode === "topic" ? (from || "1900-01-01") : mode === "monthly" ? `${month}-01` : date;
+  const end = mode === "weekly" ? weeklyEnd : mode === "topic" ? (to || "9999-12-31") : mode === "monthly" ? new Date(Date.UTC(Number(month.slice(0,4)), Number(month.slice(5,7)), 0)).toISOString().slice(0, 10) : date;
+  if (mode === "weekly" && daysBetweenInclusive(weeklyStart, weeklyEnd) > 7) return errorResponse("weekly range cannot exceed seven days");
+  if (mode === "topic" && from && to && (Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) > 366 * dayMs) return errorResponse("topic range cannot exceed 366 days");
   const isSession = url.searchParams.get("session") === "1";
+  const countOnly = url.searchParams.get("countOnly") === "1" || url.searchParams.get("count") === "1";
   const { page, limit, offset } = parsePagination(url);
-  const params = [date];
-
-  let sql;
-  if (isSession) {
-    // One query, no offset: the database picks the session.
-    sql = `
-      SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
-             option_a, option_b, option_c, option_d, correct_answer, explanation
-      FROM quizzes
-      WHERE date = $1
-      ORDER BY random()
-      LIMIT ${QUIZ_SESSION_SIZE}
-    `;
-  } else {
-    params.push(limit, offset);
-    sql = `
-      SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question,
-             option_a, option_b, option_c, option_d, correct_answer, explanation
-      FROM quizzes
-      WHERE date = $1
-      ORDER BY id ASC
-      LIMIT $2 OFFSET $3
-    `;
-  }
+  const params = [start, end];
+  let where = `date BETWEEN $1 AND $2`;
+  if (subject) { params.push(subject); where += ` AND subject = $${params.length}`; }
+  const cap = isSession ? QUIZ_SESSION_SIZE : limit;
+  const sql = countOnly ? `SELECT COUNT(*)::int AS total FROM quizzes WHERE ${where}` : `SELECT id, to_char(date, 'YYYY-MM-DD') AS date, url, subject, question, option_a, option_b, option_c, option_d, correct_answer, explanation, COUNT(*) OVER() AS total FROM quizzes WHERE ${where} ORDER BY ${isSession ? "random()" : "id ASC"} LIMIT ${cap}${isSession ? "" : ` OFFSET ${offset}`} `;
 
   try {
     const rows = await query(env.DATABASE_URL, sql, params);
     return json(
-      { date, page, limit, count: rows.length, questions: rows },
+      { mode, filters: { date: mode === "daily" ? date : undefined, from: start, to: end, subject: subject || undefined, month: mode === "monthly" ? month : undefined }, count: countOnly ? Number(rows[0]?.total || 0) : rows.length, ...(countOnly ? { questions: [] } : { total: Number(rows[0]?.total || rows.length), page, limit, questions: rows.map(({ total, ...row }) => row) }) },
       200,
       isSession ? "no-cache, no-store, must-revalidate" : "public, max-age=60, stale-while-revalidate=120"
     );
@@ -626,4 +630,6 @@ async function query(databaseUrl, sql, params) {
     await client.end().catch(() => {});
   }
 }
+
+export { daysBetweenInclusive, isValidDate };
 

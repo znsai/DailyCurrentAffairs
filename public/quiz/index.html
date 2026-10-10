@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Quiz — Top Current Affairs</title>
+    <title>Quiz &amp; Practice — Top Current Affairs</title>
     <meta name="description"
-        content="Today's Daily Quiz: one question at a time with explanations, a separate experience from reading.">
+        content="Quiz &amp; Practice for current affairs: daily, weekly, monthly, and topic-wise questions with explanations.">
     <link rel="canonical" href="https://topcurrentaffairs.in/quiz/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/layout.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/calendar.css">
     <script src="/js/theme.js"></script>
 </head>
 
@@ -107,14 +108,32 @@
 
         <header class="quiz-header stack-md">
             <p class="archive-kicker">Practice &amp; Recall</p>
-            <h1>Daily Quiz</h1>
+            <h1>Quiz &amp; Practice</h1>
             <p class="quiz-date-meta" id="quiz-date-line"></p>
             <div class="ruled quiz-intro-note">
-                <p id="quiz-intro-text">Daily Quiz reinforces current affairs: one question at a time. Choose an answer to reveal the explanation, then continue.</p>
+                <p id="quiz-intro-text">Practice current affairs one question at a time. Select an answer to see the result and explanation, then continue.</p>
             </div>
         </header>
 
-        <div id="quiz-status" class="quiz-status stack-lg" role="status" aria-live="polite">
+        <section id="quiz-landing" class="quiz-landing stack-lg" aria-labelledby="quiz-landing-heading">
+            <h2 id="quiz-landing-heading">Choose a practice mode</h2>
+            <div class="quiz-modes" role="tablist" aria-label="Quiz modes">
+                <button class="quiz-mode is-active" type="button" data-mode="daily" role="tab" aria-selected="true">Daily</button>
+                <button class="quiz-mode" type="button" data-mode="weekly" role="tab" aria-selected="false">Weekly</button>
+                <button class="quiz-mode" type="button" data-mode="monthly" role="tab" aria-selected="false">Monthly</button>
+                <button class="quiz-mode" type="button" data-mode="topic" role="tab" aria-selected="false">By Topic</button>
+            </div>
+            <form id="quiz-picker" class="quiz-picker">
+                <div class="quiz-picker-fields" id="quiz-picker-fields"></div>
+                <p class="form-error" id="quiz-picker-error" role="alert" hidden></p>
+                <div class="quiz-picker-actions">
+                    <button class="btn btn-primary" type="submit" id="quiz-start">Find questions</button>
+                    <span class="quiz-picker-status" id="quiz-availability" role="status" aria-live="polite"></span>
+                </div>
+            </form>
+        </section>
+
+        <div id="quiz-status" class="quiz-status stack-lg" role="status" aria-live="polite" hidden>
             <div class="demo-row">
                 <span class="spinner" aria-hidden="true"></span>
                 <span class="card-meta" id="quiz-loading-label">Loading quiz&hellip;</span>
@@ -127,7 +146,9 @@
             <div class="pager">
                 <button type="button" class="btn btn-secondary" id="quiz-prev">Previous</button>
                 <p class="pager-status" id="quiz-position" role="status">Question 1 of 1</p>
-                <button type="button" class="btn btn-secondary" id="quiz-next">Next</button>
+                <div class="quiz-actions">
+                    <button type="button" class="btn btn-primary" id="quiz-next" disabled>Next</button>
+                </div>
             </div>
         </section>
 
@@ -168,6 +189,7 @@
         </div>
     </footer>
 
+    <script src="/js/calendar.js" defer></script>
     <script src="/js/quiz.js" defer></script>
 </body>
 
