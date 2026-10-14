@@ -150,8 +150,9 @@ function buildCacheKey(request) {
 }
 
 import {
-  PDF_CONTENT_TYPE, generateMonthlyExport, isValidMonth, monthForRun, monthLabel, pdfKey,
+  generateMonthlyExport,
 } from "./export.js";
+import { PDF_CONTENT_TYPE, isValidMonth, monthForRun, monthLabel, pdfKey } from "./monthly.js";
 
 export default {
   async fetch(request, env, ctx) {    const url = new URL(request.url);
