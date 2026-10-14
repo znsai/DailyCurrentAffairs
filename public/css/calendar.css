@@ -1,0 +1,127 @@
+/* Date-field progressive enhancement, shared by study day and quiz filters. */
+.calendar-field {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  height: var(--touch-min);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+}
+.calendar-field:focus-within { border-color: var(--color-primary); }
+.calendar-field:has([aria-invalid="true"]) { border-color: var(--color-danger); }
+.calendar-field input,
+.quiz-picker-fields .calendar-field input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: 600 var(--text-sm) var(--font-sans);
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+}
+.calendar-field input:focus-visible { outline-offset: -3px; }
+.calendar-trigger, .calendar-clear {
+  display: grid;
+  place-items: center;
+  flex: 0 0 var(--touch-min);
+  border: 0;
+  border-inline-start: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.calendar-trigger:hover, .calendar-clear:hover { background: var(--color-surface-muted); }
+.calendar-clear { color: var(--color-muted); font-size: 1.3rem; }
+.calendar-trigger svg { width: 1.15rem; height: 1.15rem; }
+.calendar-popup {
+  position: fixed;
+  z-index: 100;
+  overflow: auto;
+  padding: 0.7rem;
+  border: 1px solid var(--color-border-strong);
+  border-top: 3px solid var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  font-family: var(--font-sans);
+}
+.calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.1rem;
+  margin-bottom: 0.35rem;
+}
+.calendar-heading strong {
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  font: 400 1.02rem var(--font-display);
+}
+.calendar-nav {
+  flex: 0 0 34px;
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+.calendar-nav:hover:not(:disabled) { background: var(--color-surface-muted); }
+.calendar-nav:disabled { color: var(--color-faint); opacity: 0.55; cursor: not-allowed; }
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+}
+.calendar-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .25rem;
+  padding-block: .25rem;
+}
+.calendar-weekday {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 0.25rem 0;
+}
+.calendar-day, .calendar-month {
+  min-width: 0;
+  min-height: var(--touch-min);
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  font: 500 var(--text-sm) var(--font-sans);
+  cursor: pointer;
+}
+.calendar-day.is-outside { color: var(--color-muted); background: var(--color-surface-muted); }
+.calendar-day.is-today, .calendar-month.is-today { border-color: var(--color-primary); font-weight: 800; }
+.calendar-day.is-in-range { background: var(--color-surface-muted); border-bottom-color: var(--color-primary); }
+.calendar-day.is-range-start, .calendar-day.is-range-end { border-bottom: 3px solid var(--color-primary); font-weight: 800; }
+.calendar-day.is-selected, .calendar-month.is-selected { background: var(--color-primary); color: var(--color-primary-ink); font-weight: 800; }
+.calendar-day:hover:not(:disabled), .calendar-month:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface-muted); color: var(--color-text); }
+.calendar-day.is-selected:hover:not(:disabled), .calendar-month.is-selected:hover:not(:disabled) { background: var(--color-primary-hover); color: var(--color-primary-ink); }
+.calendar-day:disabled, .calendar-month:disabled { color: var(--color-faint); opacity: 0.5; cursor: not-allowed; }
+.calendar-day:focus-visible, .calendar-month:focus-visible, .calendar-nav:focus-visible, .calendar-trigger:focus-visible, .calendar-clear:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+  position: relative;
+  z-index: 1;
+}
+.study-date-picker { margin: 1rem 0 0; max-width: 22rem; font-family: var(--font-sans); }
+.study-date-picker label { display: block; margin-bottom: .4rem; font-size: var(--text-sm); font-weight: 700; }
+.study-date-picker-row { display: flex; gap: .5rem; }
+.study-date-picker-row .calendar-field { flex: 1; }
+.study-date-picker-row .btn { padding-inline: .9rem; }
+@media (max-width: 360px) {
+  .calendar-popup { padding: .4rem; }
+  .calendar-day { min-height: 44px; }
+  .calendar-nav { flex-basis: 30px; }
+}

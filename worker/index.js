@@ -13,6 +13,14 @@
  *   GET /api/quiz/article?url=...   -> the question linked to one article, if any (V1)
  *   GET /api/archive?month=YYYY-MM  -> month metadata: dates with article counts (Phase 4)
  *   POST /api/article-rating        -> anonymous 1-5 article feedback (PROJECT_SPEC §11)
+ *   GET /api/monthly-exports        -> list of generated monthly PDFs (newest first)
+ *   GET /api/monthly-exports/:month -> download one month's PDF from R2
+ *   POST /api/monthly-exports/:month -> regenerate one month's PDF (admin rerun)
+ *
+ * Monthly PDF export: a Cron Trigger fires on the 2nd of every month and
+ * scheduled() generates one topic-grouped PDF of the previous month (see
+ * worker/export.js). The PDF is stored in the R2 bucket MONTHLY_EXPORTS and
+ * this API is the only layer that reads it back out.
  *
  * Canonical app date: Asia/Kolkata. The frontend always sends explicit local
  * dates/months; server fallbacks use appToday() so behavior never depends on
@@ -27,6 +35,10 @@ const MAX_LIMIT = 200;
 // Student-facing Daily Quiz session size (PROJECT_SPEC §10): the backend may
 // hold many questions per day, but the quiz the student takes is 10 random ones.
 const QUIZ_SESSION_SIZE = 10;
+
+// Monthly PDF export: the rerun endpoint is admin-only. The token is stored as
+// a Cloudflare secret (never in code) and compared in constant time.
+const ADMIN_TOKEN_NAME = "X-Admin-Token";
 
 function json(data, status = 200, cacheControl = "public, max-age=300, s-maxage=21600, stale-while-revalidate=86400") {
   return new Response(JSON.stringify(data), {
@@ -57,8 +69,7 @@ function appToday() {
 
 // Public article references are opaque, non-sequential identifiers.
 // They are reversible only by the Worker; the database primary key stays internal.
-const ARTICLE_REF_PREFIX = "ca-";
-const ARTICLE_REF_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ARTICLE_REF_PREFIX = "ca-";const ARTICLE_REF_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const ARTICLE_REF_A = 1103515245;
 const ARTICLE_REF_C = 12345;
 const ARTICLE_REF_A_INV = 4005161829;
@@ -138,9 +149,12 @@ function buildCacheKey(request) {
   });
 }
 
+import {
+  PDF_CONTENT_TYPE, generateMonthlyExport, isValidMonth, monthForRun, monthLabel, pdfKey,
+} from "./export.js";
+
 export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+  async fetch(request, env, ctx) {    const url = new URL(request.url);
     const { pathname } = url;
 
     // CORS for API routes (frontend may be served from same origin, but keep it permissive for now)
@@ -204,6 +218,8 @@ export default {
       response = await handleArchive(url, env);
     } else if (pathname === "/api/article-rating" && request.method === "POST") {
       response = await handleArticleRating(request, env);
+    } else if (pathname === "/api/monthly-exports" && request.method === "GET") {
+      response = await handleMonthlyExportsList(url, env);
     } else {
       const articleIdMatch = pathname.match(/^\/api\/current-affairs\/(ca-[A-Za-z0-9]+)\/?$/);
       if (articleIdMatch && request.method === "GET") {
@@ -221,7 +237,12 @@ export default {
         }
         return errorResponse("Not found", 404);
       } else {
-        return errorResponse("Not found", 404);
+        const monthlyRerun = pathname.match(/^\/api\/monthly-exports\/(\d{4}-(?:0[1-9]|1[0-2]))\/?$/);
+        if (monthlyRerun && request.method === "POST") {
+          response = await handleMonthlyExportRerun(monthlyRerun[1], request, env);
+        } else {
+          return errorResponse("Not found", 404);
+        }
       }
     }
 
@@ -239,7 +260,139 @@ export default {
 
     return response;
   },
+
+  /**
+   * Monthly PDF export (Cloudflare Cron Trigger).
+   *
+   * Fires on the 2nd of every month and exports the PREVIOUS calendar month,
+   * so the ingestion workflow has a day to finish before the snapshot. The
+   * month is derived from the scheduled time in Asia/Kolkata; the job is
+   * idempotent, so a retry or a manual rerun replaces the same month's PDF.
+   */
+  async scheduled(controller, env, ctx) {
+    const month = monthForRun(controller.cronTimestamp ?? new Date());
+    console.log(`monthly export: scheduled run for ${month}`);
+    ctx.waitUntil(runMonthlyExport(month, env));
+  },
 };
+
+/**
+ * Run one month's export with failure isolation: a failed month is logged and
+ * marked, never crashing the scheduler or blocking later months.
+ */
+async function runMonthlyExport(month, env) {
+  try {
+    if (!env.DATABASE_URL) throw new Error("DATABASE_URL is not configured");
+    if (!env.MONTHLY_EXPORTS) throw new Error("R2 binding MONTHLY_EXPORTS is not configured");
+    const summary = await generateMonthlyExport({ month, databaseUrl: env.DATABASE_URL, bucket: env.MONTHLY_EXPORTS, env });
+    console.log(`monthly export: ${month} ready — ${summary.articleCount} articles, ${summary.topicCount} topics, ${summary.byteSize} bytes`);
+    return summary;
+  } catch (err) {
+    console.error(`monthly export: ${month} failed —`, err?.message ?? err);
+    await markExportFailed(env, month).catch(() => {});
+    throw err;
+  }
+}
+
+/** Record a failed run so the index can show which months need a rerun. */
+async function markExportFailed(env, month) {
+  if (!env.DATABASE_URL) return;
+  const sql = `
+    INSERT INTO monthly_exports (month, storage_key, article_count, topic_count, status, generated_at)
+    VALUES ($1, $2, 0, 0, 'failed', now())
+    ON CONFLICT (month) DO UPDATE SET status = 'failed', generated_at = now()
+  `;
+  await query(env.DATABASE_URL, sql, [month, pdfKey(month)]);
+}
+
+/** Timing-safe comparison for the admin rerun token. */
+function tokensMatch(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return mismatch === 0;
+}
+
+/**
+ * GET /api/monthly-exports
+ * List of generated monthly PDFs, newest first. Public metadata only — the
+ * PDF itself is fetched through /api/monthly-exports/:month.
+ */
+async function handleMonthlyExportsList(url, env) {
+  if (!env.DATABASE_URL) return errorResponse("DATABASE_URL is not configured", 500);
+
+  const sql = `
+    SELECT month, article_count, topic_count, byte_size, status, generated_at
+    FROM monthly_exports
+    WHERE status = 'ready'
+    ORDER BY month DESC
+    LIMIT 24
+  `;
+  try {
+    const rows = await query(env.DATABASE_URL, sql);
+    return json({
+      count: rows.length,
+      exports: rows.map((row) => ({
+        month: String(row.month),
+        label: monthLabel(String(row.month)),
+        url: `/api/monthly-exports/${row.month}`,
+        article_count: Number(row.article_count),
+        topic_count: Number(row.topic_count),
+        byte_size: row.byte_size === null ? null : Number(row.byte_size),
+        generated_at: row.generated_at,
+      })),
+    }, 200, "public, max-age=300, stale-while-revalidate=600");
+  } catch (err) {
+    // The table is optional until migration 003 is applied; absence is not an error.
+    console.error("monthly exports list failed:", err);
+    return json({ count: 0, exports: [] }, 200, "public, max-age=60");
+  }
+}
+
+/**
+ * GET /api/monthly-exports/2026-09
+ * Streams the stored PDF from R2. The bucket is never exposed directly; this
+ * endpoint is the only public read path.
+ */
+async function handleMonthlyExportDownload(month, env) {
+  if (!isValidMonth(month)) return errorResponse("Invalid month format, expected YYYY-MM", 400);
+  if (!env.MONTHLY_EXPORTS) return errorResponse("Monthly exports are not configured", 503);
+
+  const object = await env.MONTHLY_EXPORTS.get(pdfKey(month));
+  if (object === null) return errorResponse("Monthly export not found", 404);
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("content-type", PDF_CONTENT_TYPE);
+  headers.set("content-length", String(object.size));
+  headers.set("content-disposition", `inline; filename="current-affairs-${month}.pdf"`);
+  headers.set("cache-control", "public, max-age=86400, s-maxage=604800, immutable");
+  return new Response(object.body, { status: 200, headers });
+}
+
+/**
+ * POST /api/monthly-exports/2026-09   (admin)
+ * Regenerate one month on demand — backfill a missed month or pick up articles
+ * that arrived after the scheduled run. Protected by a shared secret sent in
+ * the X-Admin-Token header, stored as the Cloudflare secret ADMIN_TOKEN.
+ */
+async function handleMonthlyExportRerun(month, request, env) {
+  if (!isValidMonth(month)) return errorResponse("Invalid month format, expected YYYY-MM", 400);
+  if (!env.ADMIN_TOKEN) return errorResponse("Admin reruns are not configured", 503);
+  if (!tokensMatch(request.headers.get(ADMIN_TOKEN_NAME) ?? "", env.ADMIN_TOKEN)) {
+    return errorResponse("Unauthorized", 401);
+  }
+  if (!env.DATABASE_URL) return errorResponse("DATABASE_URL is not configured", 500);
+  if (!env.MONTHLY_EXPORTS) return errorResponse("R2 binding MONTHLY_EXPORTS is not configured", 503);
+
+  try {
+    const summary = await generateMonthlyExport({ month, databaseUrl: env.DATABASE_URL, bucket: env.MONTHLY_EXPORTS, env });
+    return json({ ok: true, ...summary }, 200, "no-store");
+  } catch (err) {
+    console.error(`monthly export rerun failed for ${month}:`, err);
+    return errorResponse("Monthly export failed", 500);
+  }
+}
 
 /** Build filter conditions from the app-day default + optional subject param */
 function buildCurrentAffairsWhere(url) {
@@ -631,5 +784,5 @@ async function query(databaseUrl, sql, params) {
   }
 }
 
-export { daysBetweenInclusive, isValidDate };
+export { daysBetweenInclusive, isValidDate, isValidMonth, monthForRun, monthLabel, pdfKey };
 
