@@ -321,7 +321,7 @@
                 const endpoint = query
                     ? `/api/search?${new URLSearchParams({ q: query, page: '1', limit: '20' })}`
                     : `/api/current-affairs?${new URLSearchParams({ date: today, page: '1', limit: String(PREVIEW_LIMIT) })}`;
-                const response = await fetch(endpoint);
+                const response = await fetch(endpoint, { cache: 'no-store' });
                 if (!response.ok) throw new Error('Unable to load current affairs. Please try again.');
                 const data = await response.json();
                 setCachedHome(cacheKey, data);

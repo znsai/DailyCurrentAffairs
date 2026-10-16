@@ -157,6 +157,9 @@ import { PDF_CONTENT_TYPE, isValidMonth, monthForRun, monthLabel, pdfKey } from 
 export default {
   async fetch(request, env, ctx) {    const url = new URL(request.url);
     const { pathname } = url;
+    const requestedDate = url.searchParams.get("date");
+    const isTodayCurrentAffairs = pathname === "/api/current-affairs"
+      && (requestedDate === null || requestedDate === appToday());
 
     // CORS for API routes (frontend may be served from same origin, but keep it permissive for now)
     if (request.method === "OPTIONS") {
@@ -176,6 +179,7 @@ export default {
     const isCacheableApiGet = request.method === "GET"
       && pathname.startsWith("/api/")
       && pathname !== "/api/health"
+      && !isTodayCurrentAffairs
       && !isSessionQuiz
       && !url.searchParams.has("nocache");
 
@@ -464,7 +468,7 @@ async function handleCurrentAffairs(url, env) {
         ...article,
         public_id: articleRefFromId(id),
       })),
-    });
+    }, 200, (url.searchParams.get("date") ?? appToday()) === appToday() ? "no-store" : undefined);
   } catch (err) {
     console.error("current-affairs query failed:", err);
     return errorResponse("Database query failed", 500);
